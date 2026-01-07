@@ -13,16 +13,19 @@ public class BallInteract : MonoBehaviour
     
     private Rigidbody rb;
     private InputActionMap playerActionMap;
-    private InputAction interactAction;
+    private InputAction bumpAction;
+    private InputAction setAction;
+    private InputAction directionAction; // Which direction the player will perform an action (no plans to use this for bumping atm)
     private Transform playerTransform;
     private GameObject ball;
-    private Vector3 setLocation; // Where the ball will be set to after bumping
+    private Vector3 bumpToLocation; // Where the ball will go after bumping
+    private Vector3 setToLocation; // Where the ball will go after setting
     
     void Start()
     {
         rb = GetComponent<Rigidbody>();
         playerTransform = transform;
-        setLocation = new UnityEngine.Vector3(1f, 0, 0);
+        bumpToLocation = new UnityEngine.Vector3(1f, 0, 0);
         
         ball = GameObject.FindGameObjectWithTag("Ball");
         
@@ -31,14 +34,26 @@ public class BallInteract : MonoBehaviour
             playerActionMap = inputActionAsset.FindActionMap("Player");
             if (playerActionMap != null)
             {
-                interactAction = playerActionMap.FindAction("Interact");
-                if (interactAction != null)
+                bumpAction = playerActionMap.FindAction("Bump");
+                if (bumpAction != null)
                 {
-                    interactAction.performed += OnInteract;
+                    bumpAction.performed += OnInteract;
                 }
                 else
                 {
-                    Debug.LogError("Interact action not found!");
+                    Debug.LogError("Bump action not found!");
+                }
+
+                setAction = playerActionMap.FindAction("Set");
+                if (setAction == null)
+                {
+                    Debug.LogError("Set action not found!");
+                }
+
+                directionAction = playerActionMap.FindAction("Direction");
+                if (directionAction == null)
+                {
+                    Debug.LogError("Direction action not found!");
                 }
             }
             else
@@ -70,9 +85,9 @@ public class BallInteract : MonoBehaviour
 
     void OnDestroy()
     {
-        if (interactAction != null)
+        if (bumpAction != null)
         {
-            interactAction.performed -= OnInteract;
+            bumpAction.performed -= OnInteract;
         }
     }
 
@@ -89,8 +104,6 @@ public class BallInteract : MonoBehaviour
             Rigidbody ballRb = ball.GetComponent<Rigidbody>();
             if (ballRb != null)
             {
-                // ballRb.AddForce(Vector3.up * upwardForce);
-
                 BumpBall(ballRb);
             }
             else
@@ -110,9 +123,13 @@ public class BallInteract : MonoBehaviour
     
     void Update()
     {
-        if (interactAction != null && interactAction.IsPressed())
+        if (bumpAction != null && bumpAction.IsPressed())
         {
             OnInteractFallback();
+        }
+        else if (setAction != null && setAction.IsPressed())
+        {
+            SetBall();
         }
     }
     
@@ -134,8 +151,6 @@ public class BallInteract : MonoBehaviour
             Rigidbody ballRb = ball.GetComponent<Rigidbody>();
             if (ballRb != null)
             {
-                // ballRb.AddForce(Vector3.up * upwardForce);
-
                 BumpBall(ballRb);
             }
             else
@@ -147,21 +162,72 @@ public class BallInteract : MonoBehaviour
 
     private void BumpBall(Rigidbody ballRb)
     {
-        // Calculate the velocity in the y direction for the ball to reach a height of 5 given its current y component
-        float gravity = MathF.Abs(Physics.gravity.y);
-        float vyInit = MathF.Sqrt(2 * gravity * (5f - ballRb.transform.position.y));
-
-        // Calculate time the ball will be in the air
-        float vyFinal = MathF.Sqrt(10 * gravity);
-        float t1 = vyInit / gravity;
-        float t2 = vyFinal / gravity;
-        float t = t1 + t2; 
-
-        // Calculate the x and z velocities of the ball
-        float vx = (setLocation.x - ballRb.transform.position.x) / t;
-        float vz = (setLocation.z - ballRb.transform.position.z) / t;
-
         // Set the ball's intial velocity
-        ballRb.linearVelocity = new Vector3(vx, vyInit, vz);
-    }  
+        SetBallInitVelocity(ballRb, bumpToLocation, 5.0f);
+    }
+
+    private void SetBall()
+    {
+        if (ball == null)
+        {
+            Debug.LogWarning("Ball is null!");
+            return;
+        }
+        
+        bool nearBall = IsPlayerNearBall();
+        
+        if (nearBall)
+        {
+            Rigidbody ballRb = ball.GetComponent<Rigidbody>();
+            if (ballRb != null)
+            {
+                // Set the setting location to middle of court as default
+                setToLocation = bumpToLocation;
+
+                // Get the direction value
+                Vector2 dir = directionAction.ReadValue<Vector2>();
+
+                // If player wants to set towards top or bottom, update set to location
+                if (dir.y < -0.64f)
+                {
+                    setToLocation -= new Vector3(0, 0, 4);
+                }
+                else if (dir.y > 0.64f)
+                {
+                    setToLocation += new Vector3(0, 0, 4);
+                }
+
+                // Set the ball's initial velocity
+                SetBallInitVelocity(ballRb, setToLocation, 6.0f);
+            }
+            else
+            {
+                Debug.LogWarning("Ball has no Rigidbody component!");
+            }
+        } 
+    }
+
+    private void SetBallInitVelocity(Rigidbody ballRb, Vector3 endLocation, float maxHeight)
+    {
+        // Case where the ball needs to go up
+        if (maxHeight > ballRb.transform.position.y)
+        {
+            // Calculate the velocity in the y direction for the ball to reach a height of 5 given its current y component
+            float gravity = MathF.Abs(Physics.gravity.y);
+            float vyInit = MathF.Sqrt(2 * gravity * (maxHeight - ballRb.transform.position.y));
+
+            // Calculate time the ball will be in the air
+            float vyFinal = MathF.Sqrt(10 * gravity);
+            float t1 = vyInit / gravity;
+            float t2 = vyFinal / gravity;
+            float t = t1 + t2; 
+
+            // Calculate the x and z velocities of the ball
+            float vx = (endLocation.x - ballRb.transform.position.x) / t;
+            float vz = (endLocation.z - ballRb.transform.position.z) / t;
+
+            // Set the ball's intial velocity
+            ballRb.linearVelocity = new Vector3(vx, vyInit, vz);
+        }
+    }
 }
