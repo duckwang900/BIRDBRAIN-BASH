@@ -6,7 +6,7 @@ public class CharacterMovement : MonoBehaviour
     [Header("Character Attributes")]
     public float maxGroundSpeed = 1.0f; // Max speed that the character can move on the ground
     public float maxAirSpeed = 1.0f; // Max speed that the character can move in the air
-    public float jumpHeight = 1.0f; // Height the character can jump 
+    public float jumpForce = 1.0f; // Force the character uses to jump 
     private float directionChangeWeight = 15f; // How quickly the character can change direction
     private Rigidbody rb; // Rigid body of the character
     private bool grounded = false; // If the character is touching the ground
@@ -50,7 +50,8 @@ public class CharacterMovement : MonoBehaviour
         // If character touching ground AND player presses jump button, character jumps
         if (grounded && jump.IsPressed())
         {
-            rb.linearVelocity += new Vector3(0, jumpHeight, 0);
+            rb.linearVelocity += new Vector3(0, jumpForce, 0);
+            grounded = false;
         }
     }
 
