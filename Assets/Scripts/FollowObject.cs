@@ -9,6 +9,7 @@ public class FollowObject : MonoBehaviour
     
     private Quaternion initialRotation; // Store initial rotation to maintain it
     
+    // Start is called once before the first execution of Update after the MonoBehaviour is created
     void Start()
     {
         // Store the initial rotation to maintain it
@@ -21,6 +22,7 @@ public class FollowObject : MonoBehaviour
         }
     }
 
+    // Update is called once per frame
     void Update()
     {
         // Only follow if target is assigned
