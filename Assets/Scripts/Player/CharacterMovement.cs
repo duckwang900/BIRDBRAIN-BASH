@@ -10,7 +10,11 @@ public class CharacterMovement : MonoBehaviour
     public float rotationSpeed = 10.0f; // How fast the character rotates to face movement direction
     private float directionChangeWeight = 15f; // How quickly the character can change direction
     private Rigidbody rb; // Rigid body of the character
-    private bool grounded = false; // If the character is touching the ground
+    // christofort: changed grounded to public to allow PenguinScript to access it
+    public bool grounded = false; // If the character is touching the ground
+
+    private bool canJump = false; // christofort: defaulted to false, ability scripts must set this to true
+    private bool canMove = false; // christofort: defaulted to false, ability scripts must set this to true
     private PenguinScript penguinScript; // Reference to penguin dash script
     
     [HideInInspector] public bool overrideRotation = false; // Allow other scripts to override rotation
@@ -34,7 +38,8 @@ public class CharacterMovement : MonoBehaviour
         bool isDashing = penguinScript != null && penguinScript.isDashing;
         
         // Update the current direction and speed of the character based on player input
-        if (!inputDirection.Equals(Vector2.zero) && !isDashing)
+        // christofort: added check for canMove to be true
+        if (!inputDirection.Equals(Vector2.zero) && !isDashing && canMove)
         {
             // Calculate new velocity, ensure it doesn't exceed max ground or air speed, then assign the velocity
             Vector2 newVelocity = new Vector2(rb.linearVelocity.x, rb.linearVelocity.z) + inputDirection * Time.fixedDeltaTime * directionChangeWeight;
@@ -72,7 +77,8 @@ public class CharacterMovement : MonoBehaviour
         InputAction jump = InputSystem.actions.FindAction("Jump");
 
         // If character touching ground AND player presses jump button, character jumps
-        if (grounded && jump.IsPressed())
+        // christofort: addded a check for canJump to prevent jumping if ability script hasn't allowed for it
+        if (canJump && grounded && jump.IsPressed())
         {
             rb.linearVelocity += new Vector3(0, jumpForce, 0);
             grounded = false;
@@ -97,5 +103,11 @@ public class CharacterMovement : MonoBehaviour
         {
             grounded = false;
         }
+    }
+    // christofort: encapsulated variables to control player movement from other scripts
+    public void controlMovement(bool movementEnabled, bool jumpEnabled)
+    {
+        canJump = jumpEnabled;
+        canMove = movementEnabled; 
     }
 }
