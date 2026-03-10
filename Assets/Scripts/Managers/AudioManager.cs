@@ -6,6 +6,9 @@ public enum BirdType
     CROW,
     SCISSORTAIL,
     LOVEBIRD,
+    PELICAN,
+    SEAGULL,
+    OWL,
     OTHER
 }
 
