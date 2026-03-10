@@ -5,11 +5,10 @@ public class ToucanOffensive : MonoBehaviour
 {
     [SerializeField]
     public float cooldown = 10f; // Cooldown in seconds (TBA)
-
+    
     // When true the next spike by this character will be unblockable
     [HideInInspector]
     public bool abilityActive = false;
-
     private bool onCooldown = false;
 
     public BallManager ballManager;

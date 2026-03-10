@@ -9,7 +9,18 @@ public class CharacterMovement : MonoBehaviour
     public float maxAirSpeed = 1.0f; // Max speed that the character can move in the air
     public float jumpForce = 1.0f; // Force the character uses to jump 
     public float rotationSpeed = 10.0f; // How fast the character rotates to face movement direction
+    [Tooltip("Euler offset applied to facing rotation. Use this if the model's forward axis isn't aligned with world +Z.")]
+    public Vector3 rotationOffsetEuler = Vector3.zero; // local rotation adjustment for the prefab 
+    
+    [Header("Animation")]
+    public Animator animator; // optional animator for player character
+    private bool isWalking = false; // computed each frame for animation
+
     private float directionChangeWeight = 15f; // How quickly the character can change direction
+    private Coroutine buffCoroutine; // Reference to the currently active buff coroutine
+    private float originalMaxGroundSpeed = 1.0f; // Original max ground speed before buff
+    private float originalMaxAirSpeed = 1.0f; // Original max air speed before buff
+    // private float originalJumpForce = 1.0f; // Original jump force before buff
     private Rigidbody rb; // Rigid body of the character
     // christofort: changed grounded to public to allow PenguinScript to access it
     public bool grounded = false; // If the character is touching the ground
@@ -17,6 +28,8 @@ public class CharacterMovement : MonoBehaviour
     private bool canJump = false; // christofort: defaulted to false, ability scripts must set this to true
     private bool canMove = false; // christofort: defaulted to false, ability scripts must set this to true
     private PenguinScript penguinScript; // Reference to penguin dash script
+    private ParticleSystem dustParticles; // Reference to particle system for ground dust
+    private PlayerInput playerInput; // Input for the player
     
     [HideInInspector] public bool overrideRotation = false; // Allow other scripts to override rotation
     [HideInInspector] public Quaternion targetRotation; // Target rotation when overridden
@@ -25,15 +38,31 @@ public class CharacterMovement : MonoBehaviour
     void Start()
     {
         // Get the Rigidbody of the character
+        playerInput = GetComponent<PlayerInput>();
         rb = GetComponent<Rigidbody>();
         penguinScript = GetComponent<PenguinScript>();
+        dustParticles = GetComponent<ParticleSystem>();
+
+        // grab animator if not assigned in inspector (mirrors AIBehavior logic)
+        if (animator == null)
+        {
+            animator = GetComponent<Animator>();
+            if (animator == null)
+            {
+                animator = GetComponentInChildren<Animator>();
+            }
+            if (animator == null)
+            {
+                animator = GetComponentInParent<Animator>();
+            }
+        }
     }
 
     // Update is called once per frame
     void FixedUpdate()
     {
         // Check for player inputs for lateral movement
-        Vector2 inputDirection = InputSystem.actions.FindAction("Move").ReadValue<Vector2>();
+        Vector2 inputDirection = playerInput.actions.FindAction("Move").ReadValue<Vector2>();
 
         // Don't process movement input if penguin is dashing
         bool isDashing = penguinScript != null && penguinScript.isDashing;
@@ -64,7 +93,12 @@ public class CharacterMovement : MonoBehaviour
             if (!overrideRotation && inputDirection.magnitude > 0.1f)
             {
                 Vector3 movementDirection = new Vector3(inputDirection.x, 0, inputDirection.y);
-                targetRotation = Quaternion.LookRotation(movementDirection);
+                Quaternion baseRotation = Quaternion.LookRotation(movementDirection);
+                if (rotationOffsetEuler != Vector3.zero)
+                {
+                    baseRotation *= Quaternion.Euler(rotationOffsetEuler);
+                }
+                targetRotation = baseRotation;
             }
         }
         
@@ -74,8 +108,16 @@ public class CharacterMovement : MonoBehaviour
             transform.rotation = Quaternion.Slerp(transform.rotation, targetRotation, rotationSpeed * Time.fixedDeltaTime);
         }
 
+        // update walking flag for animator
+        Rigidbody localRb = rb; // alias for clarity
+        isWalking = new Vector2(localRb.linearVelocity.x, localRb.linearVelocity.z).magnitude > 0.1f;
+        if (animator != null)
+        {
+            animator.SetBool("isWalking", isWalking);
+        }
+
         // Check for player input for vertical movement
-        InputAction jump = InputSystem.actions.FindAction("Jump");
+        InputAction jump = playerInput.actions.FindAction("Jump");
 
         // If character touching ground AND player presses jump button, character jumps
         // christofort: addded a check for canJump to prevent jumping if ability script hasn't allowed for it
@@ -93,6 +135,11 @@ public class CharacterMovement : MonoBehaviour
         if (other.gameObject.layer == 6)
         {
             grounded = true;
+            // Resume particle emission when landing
+            if (dustParticles != null)
+            {
+                dustParticles.Play();
+            }
         }
     }
 
@@ -103,6 +150,11 @@ public class CharacterMovement : MonoBehaviour
         if (other.gameObject.layer == 6)
         {
             grounded = false;
+            // Stop particle emission when airborne
+            if (dustParticles != null)
+            {
+                dustParticles.Stop();
+            }
         }
     }
     // christofort: encapsulated variables to control player movement from other scripts
@@ -114,7 +166,19 @@ public class CharacterMovement : MonoBehaviour
 
     public void BuffStats(int increase, int time)
     {
-        StartCoroutine(BuffTimer(increase, time));
+        buffCoroutine = StartCoroutine(BuffTimer(increase, time));
+    }
+
+    public void CancelBuffs()
+    {
+        if (buffCoroutine != null)
+        {
+            StopCoroutine(buffCoroutine);
+            buffCoroutine = null;
+        }
+        maxGroundSpeed = originalMaxGroundSpeed;
+        maxAirSpeed = originalMaxAirSpeed;
+        // jumpForce = originalJumpForce;
     }
 
     public IEnumerator BuffTimer(int increase, int time)
@@ -122,13 +186,13 @@ public class CharacterMovement : MonoBehaviour
         Debug.Log("BUFFING...");
         Debug.Log("ORIGINAL = " + maxGroundSpeed);
         
-        float originalMaxGroundSpeed = maxGroundSpeed;
-        float originalMaxAirSpeed = maxAirSpeed;
-        float originalJumpForce = jumpForce;
+        originalMaxGroundSpeed = maxGroundSpeed;
+        originalMaxAirSpeed = maxAirSpeed;
+        // originalJumpForce = jumpForce;
 
         maxGroundSpeed += increase;
         maxAirSpeed += increase;
-        jumpForce += increase;
+        // jumpForce += increase;
 
         Debug.Log("NEW = "+ maxGroundSpeed);
 
@@ -136,6 +200,6 @@ public class CharacterMovement : MonoBehaviour
 
         maxGroundSpeed = originalMaxGroundSpeed;
         maxAirSpeed = originalMaxAirSpeed;
-        jumpForce = originalJumpForce;
+        // jumpForce = originalJumpForce;
     }
 }

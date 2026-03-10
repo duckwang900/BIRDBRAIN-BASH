@@ -1,5 +1,7 @@
 using UnityEngine;
 using System.Collections;
+using UnityEngine.Events;
+using TMPro;
 
 public class ScoreManager : MonoBehaviour
 {
@@ -8,11 +10,42 @@ public class ScoreManager : MonoBehaviour
     public int side1SetsWon = 0;
     public int side2SetsWon = 0;
     public GameManager gameManager;
+
+    [Header("Score UI")]
+    public TextMeshProUGUI side1ScoreUI;
+    public TextMeshProUGUI side1SetUI;
+    public TextMeshProUGUI side2ScoreUI;
+    public TextMeshProUGUI side2SetUI;
+
+    [Header("Serve Indicator")]
+    public GameObject side1ServeIndicator;
+    public GameObject side2ServeIndicator;
+
+    [Header("Bird Types")]
+    [SerializeField] private BirdType rightBirdType1;
+   
     private bool leftLastScored;
     private bool inPlay;
+    UnityEvent LeftScored;
+    UnityEvent RightScored;
+
     // Start is called once before the first execution of Update after the MonoBehaviour is created
     void Start()
     {
+        // Set the scores to 0, right to serve, and the ball is in play
+        side1Score = 0;
+        side2Score = 0;
+        side1ScoreUI.text = "0";
+        side2ScoreUI.text = "0";
+        leftLastScored = false;
+        inPlay = true;
+        
+        // Initializes events for when the left or right side scores
+        LeftScored = new UnityEvent();
+        RightScored = new UnityEvent();
+
+        LeftScored.AddListener(EventManager.LeftScored);
+        RightScored.AddListener(EventManager.RightScored);
         // Set the scores to 0, the sets to 0, right to serve, and the ball is in play
         ResetMatch();
 
@@ -21,6 +54,7 @@ public class ScoreManager : MonoBehaviour
         {
             Debug.LogError("Game Manager was not set in inspector for Score Manager!");
         }
+        LeftScored.Invoke();
     }
 
     // Checking to see if the ball hits the court on either side
@@ -30,33 +64,82 @@ public class ScoreManager : MonoBehaviour
         if (collision.gameObject.CompareTag("Side1") && inPlay)
         {
             side2Score += 1;
+            side2ScoreUI.text = side2Score.ToString();
             inPlay = false;
             Debug.Log("side 2 scored! points: " + side2Score);
-            CheckWinSet(true);
+            LeftScored.Invoke();
+            PlaySounds(false);
+            CheckWinSet(false);
         } 
         // if it touches side 2, then side 1 scores
         else if (collision.gameObject.CompareTag("Side2") && inPlay) 
         {
             side1Score += 1;
+            side1ScoreUI.text = side1Score.ToString();
             inPlay = false;
             Debug.Log("side 1 scored! points: " + side1Score);
-            CheckWinSet(false);
+            RightScored.Invoke();
+            PlaySounds(true);
+            CheckWinSet(true);
+        }
+
+        // ducky: If ball goes out, run coroutine in case out collision was registered before court collision
+        else if (collision.gameObject.CompareTag("Out"))
+        {
+            StartCoroutine(outCheck());
+        }
+    }
+
+    // ducky: IEnumerator coroutine for collision order sorting (b/c out collision was sometimes coming through before court)
+    public IEnumerator outCheck()
+    {
+        yield return new WaitForSeconds(.2f);
+
+        // Checks if ball still in play
+        if (inPlay)
+        {
+            // Left side scores
+            if (gameManager.lastHit == gameManager.leftPlayer1 || gameManager.lastHit == gameManager.leftPlayer2)
+            {
+                side1Score += 1;
+                side1ScoreUI.text = side1Score.ToString();
+                inPlay = false;
+                Debug.Log("Out! side 1 scored! points: " + side1Score);
+                PlaySounds(false);
+                CheckWinSet(false);
+            }
+
+            // Right side scores
+            else if (gameManager.lastHit == gameManager.rightPlayer1 || gameManager.lastHit == gameManager.rightPlayer2)
+            {
+                side2Score += 1;
+                side2ScoreUI.text = side2Score.ToString();
+                inPlay = false;
+                Debug.Log("Out! side 2 scored! points: " + side2Score);
+                PlaySounds(true);
+                CheckWinSet(true);
+            }
         }
     }
 
     // After each score, check the win conditions for both sides
     void CheckWinSet(bool leftJustScored)
     {
+        // Set game manager state to end of point
+        gameManager.gameState = GameManager.GameState.PointEnd;
+
         if (side1Score >= 15 && side1Score - side2Score >= 2)
         {
             Debug.Log("side 1 wins! final score: " + side1Score + " to " + side2Score);
             side1SetsWon++;
+            side1SetUI.text = side1SetsWon.ToString();
             CheckMatchWin(leftJustScored);
         } 
         else if (side2Score >= 15 && side2Score - side1Score >= 2)
         {
             Debug.Log("side 2 wins! final score: " + side1Score + " to " + side2Score);
             side2SetsWon++;
+            side2SetUI.text = side2SetsWon.ToString();
             CheckMatchWin(leftJustScored);
         }
         else
@@ -95,6 +178,9 @@ public class ScoreManager : MonoBehaviour
             leftLastScored = !leftLastScored;
         }
 
+        // Updates UI For Which Side is Serving
+        UpdateServeIndicator(leftJustScored);
+
         // Wait 2 seconds
         yield return new WaitForSeconds(2.0f);
 
@@ -110,7 +196,8 @@ public class ScoreManager : MonoBehaviour
         // Set the scores to 0 and the ball is in play
         side1Score = 0;
         side2Score = 0;
-        inPlay = true;
+        side1ScoreUI.text = "0";
+        side2ScoreUI.text = "0";
     }
     //Reset the entire Match
     void ResetMatch()
@@ -120,7 +207,45 @@ public class ScoreManager : MonoBehaviour
         side2Score = 0;
         side1SetsWon = 0;
         side2SetsWon = 0;
+        side1ScoreUI.text = "0";
+        side2ScoreUI.text = "0";
+        side1SetUI.text = "0";
+        side2SetUI.text = "0";
         leftLastScored = false;
         inPlay = true;
+    }
+
+    // Updates the Indicator on scorebug for which team is currently serving
+    void UpdateServeIndicator(bool leftJustScored)
+    {
+        if (side1ServeIndicator != null && side2ServeIndicator != null)
+        {
+            if (leftJustScored)
+            {
+                side1ServeIndicator.SetActive(true);
+                side2ServeIndicator.SetActive(false);
+            }
+            else
+            {
+                side1ServeIndicator.SetActive(false);
+                side2ServeIndicator.SetActive(true);
+            }
+
+        }
+    }
+
+    // Play sounds once a point is scored
+    void PlaySounds(bool leftJustScored)
+    {
+        AudioManager.PlayScoringSound(1.0f);
+        // Play the correct sounds depending on which team just scored
+        if (leftJustScored)
+        {
+            AudioManager.PlayBirdSound(rightBirdType1, SoundType.SAD, 1.0f);
+        }
+        else
+        {
+            AudioManager.PlayBirdSound(rightBirdType1, SoundType.HAPPY, 1.0f);
+        }
     }
 }

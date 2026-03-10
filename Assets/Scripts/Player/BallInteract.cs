@@ -11,7 +11,15 @@ public class BallInteract : MonoBehaviour
     [Header("Ball Manager")]
     public BallManager ballManager; // Manager of the ball
     public float interactionRadius = 5f; // How far the ball can be from the player to interact with it
+
+    [Header("Animation")]
+    public Animator animator; // animator for player
+
+    [Header("Spike Stat")]
+    public float spikeStat; //Spiking power for the bird
     
+    [SerializeField] private BirdType birdType; // Type of the bird for audio noises
+    private Transform contactPoint; // Reference for interaction radius
     private GameObject ball; // Game object for the ball
     private Rigidbody ballRb; // Rigid body for the ball
     private Vector3 bumpToLocation; // Where the ball will go after bumping
@@ -19,14 +27,17 @@ public class BallInteract : MonoBehaviour
     private Vector3 spikeToLocation; // Where the ball will go after spiking
     private Vector3 serveToLocation; // Where the ball will go after spiking
     private Vector3 blockToLocation; // Where the ball will go after blocking
-    private float spikeSpeed; // Speed of the ball when spiked
     private CharacterMovement serverMovement; //Christofort: Track the server's movement from character movement script
+    private float baseSpikeSpeed; // Speed of the ball when spiked
+    private PlayerInput playerInput; // Input for this specific player
+
 
     // Start is called once before the first execution of Update after the MonoBehaviour is created
     void Start()
     {
         serverMovement = GetComponent<CharacterMovement>(); // christofort: gets the character movement script
-        spikeSpeed = 10.0f;
+        playerInput = GetComponent<PlayerInput>();
+        baseSpikeSpeed = 10.0f;
         
         ball = GameObject.FindGameObjectWithTag("Ball");
         if (ball != null)
@@ -44,16 +55,54 @@ public class BallInteract : MonoBehaviour
 
         if (ballManager == null)
         {
-            Debug.LogError("Ball Manager was not set in inspector for BallInteract!");
+            ballManager = ball.GetComponent<BallManager>();
         }
+
+        // If not assigned in scene, try to find the game manager
+        if (gameManager == null)
+        {
+            gameManager = GameObject.Find("GameManager").GetComponent<GameManager>();
+        }
+
+        // locate contact point child safely
+        var cpTransform = transform.Find("ContactPoint");
+        if (cpTransform != null)
+        {
+            contactPoint = cpTransform;
+        }
+        else
+        {
+            Debug.LogErrorFormat("Could not find contact point for {0}. Using root transform instead.", transform.name);
+            contactPoint = transform; // fallback to avoid null reference
+        }
+
+        // animator fallback (same pattern as AIBehavior)
+        if (animator == null)
+        {
+            animator = GetComponent<Animator>();
+            if (animator == null)
+            {
+                animator = GetComponentInChildren<Animator>();
+            }
+            if (animator == null)
+            {
+                animator = GetComponentInParent<Animator>();
+            }
+        }
+
     }
 
     // If the player is near the ball
     private bool IsPlayerNearBall()
     {
         if (ball == null) return false;
+        if (contactPoint == null)
+        {
+            Debug.LogWarning("ContactPoint missing in BallInteract");
+            return false;
+        }
         
-        float distance = Vector3.Distance(transform.position, ball.transform.position);
+        float distance = Vector3.Distance(contactPoint.position, ball.transform.position);
         return distance <= interactionRadius;
     }
 
@@ -65,6 +114,13 @@ public class BallInteract : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
+        // Keep ball completely still before serve
+        if (gameManager != null && gameManager.gameState == GameManager.GameState.PointStart && ballRb != null)
+        {
+            ballRb.linearVelocity = Vector3.zero;
+            ballRb.useGravity = false;
+        }
+
         CheckState();
     }
 
@@ -72,7 +128,7 @@ public class BallInteract : MonoBehaviour
     private void CheckState()
     {
         // Offensive ability activation (Toucan): allow activation regardless of CanHit()
-        if (InputSystem.actions.FindAction("Offensive Ability").WasPressedThisFrame())
+        if (playerInput.actions.FindAction("Offensive Ability").WasPressedThisFrame())
         {
             ToucanOffensive toucan = GetComponent<ToucanOffensive>();
             if (toucan != null)
@@ -90,13 +146,13 @@ public class BallInteract : MonoBehaviour
                 case GameManager.GameState.Spiked:
                     // EJ: Since ball can't be blocked on the serve this check can't be related to "Served"
                     // EJ: Moved "Served" to a check by itself and check to bump twice                
-                    if (IsPlayerNearBall() && IsPlayerNearNet() && InputSystem.actions.FindAction("Block").WasPressedThisFrame())
+                    if (IsPlayerNearBall() && IsPlayerNearNet() && playerInput.actions.FindAction("Block").WasPressedThisFrame())
                     {
                         BlockBall();
                     }
                     
                     // If the player is close enough to the ball and is pressing the bump button, bump the ball
-                    else if (IsPlayerNearBall() && InputSystem.actions.FindAction("Bump").WasPressedThisFrame())
+                    else if (IsPlayerNearBall() && playerInput.actions.FindAction("Bump").WasPressedThisFrame())
                     {
                         BumpBall();
                     }
@@ -104,7 +160,7 @@ public class BallInteract : MonoBehaviour
 
                 case GameManager.GameState.Served:
                     // If the player is close enough to the ball and is pressing the bump button, bump the ball
-                    if (IsPlayerNearBall() && InputSystem.actions.FindAction("Bump").WasPressedThisFrame())
+                    if (IsPlayerNearBall() && playerInput.actions.FindAction("Bump").WasPressedThisFrame())
                     {
                         BumpBall();
                     }
@@ -112,7 +168,7 @@ public class BallInteract : MonoBehaviour
                 // Ball has just been bumped
                 case GameManager.GameState.Bumped:
                     // If the player is close enough to the ball and is pressing the set button, set the ball
-                    if (IsPlayerNearBall() && InputSystem.actions.FindAction("Set").WasPressedThisFrame())
+                    if (IsPlayerNearBall() && playerInput.actions.FindAction("Set").WasPressedThisFrame())
                     {
                         SetBall();
                     }
@@ -120,7 +176,7 @@ public class BallInteract : MonoBehaviour
                 // Ball has just been set
                 case GameManager.GameState.Set:
                     // If the player is close enough to the ball and is pressing the spike button, spike the ball
-                    if (IsPlayerNearBall() && InputSystem.actions.FindAction("Spike").WasPressedThisFrame())
+                    if (IsPlayerNearBall() && playerInput.actions.FindAction("Spike").WasPressedThisFrame())
                     {
                         SpikeBall();
                     }
@@ -131,9 +187,18 @@ public class BallInteract : MonoBehaviour
                     if (gameManager.server == gameObject)
                     {
                         serverMovement.controlMovement(false,true);
+                        // Force player to face forward toward the net, accounting for rotation offset
+                        serverMovement.overrideRotation = true;
+                        Vector3 forwardDir = onLeft ? Vector3.right : Vector3.left;
+                        Quaternion baseRotation = Quaternion.LookRotation(forwardDir);
+                        if (serverMovement.rotationOffsetEuler != Vector3.zero)
+                        {
+                            baseRotation *= Quaternion.Euler(serverMovement.rotationOffsetEuler);
+                        }
+                        serverMovement.targetRotation = baseRotation;
                     }
                     // If this player is the one serving and they press the serve button, serve the ball
-                    if (gameManager.server == gameObject && InputSystem.actions.FindAction("Serve").WasPressedThisFrame())
+                    if (gameManager.server == gameObject && playerInput.actions.FindAction("Serve").WasPressedThisFrame())
                     {
                         ServeBall();
                     }
@@ -145,6 +210,9 @@ public class BallInteract : MonoBehaviour
     // Check if the player can hit the ball
     private bool CanHit()
     {
+        // If the point has ended, they cannot hit the ball
+        if (gameManager.gameState.Equals(GameManager.GameState.PointEnd)) return false;
+        
         // If this player just hit the ball, they cannot hit it again
         if (gameObject.Equals(gameManager.lastHit)) return false;
 
@@ -166,7 +234,7 @@ public class BallInteract : MonoBehaviour
     }
 
     // Bump the ball
-    private void BumpBall()
+    public void BumpBall()
     {
         // Set bump to location to front middle of whatever side of the court is bumping
         bumpToLocation = new Vector3(2f, 0f, 0f);
@@ -178,21 +246,36 @@ public class BallInteract : MonoBehaviour
         // Set the ball's intial velocity and destination
         SetBallInitVelocity(ballRb, bumpToLocation, 5.0f);
         ballManager.goingTo = bumpToLocation;
+        ballManager.offCourse = false;
+
+        // Play the bump sound for the bird
+        AudioManager.PlayBirdSound(birdType, SoundType.BUMP, 1.0f);
+        AudioManager.PlayBallPlayerInteractionSound();
 
         // Update game manager fields
         gameManager.gameState = GameManager.GameState.Bumped;
         gameManager.lastHit = gameObject;
         gameManager.leftAttack = onLeft;
+        // trigger animation
+        if (animator != null)
+        {
+            animator.SetTrigger("Bump");
+        }
     }
 
     // Set the ball
     private void SetBall()
     {
         // Set the setting location to middle of court as default
-        setToLocation = bumpToLocation;
+        setToLocation = new Vector3(2f, 0f, 0f);
+        if (onLeft)
+        {
+            setToLocation *= -1;
+        }
 
         // Get the direction value
-        Vector2 dir = InputSystem.actions.FindAction("Direction").ReadValue<Vector2>();
+        Vector2 dir = playerInput.actions.FindAction("Direction").ReadValue<Vector2>();
+        Debug.LogFormat("ServeToLocation before checking direction: {0}", setToLocation);
 
         // If player wants to set towards top or bottom, update set to location
         if (dir.y < -0.64f)
@@ -203,14 +286,24 @@ public class BallInteract : MonoBehaviour
         {
             setToLocation += new Vector3(0, 0, 4); // Upper side of the court
         }
+        Debug.LogFormat("ServeToLocation after checking direction: {0}", setToLocation);
 
         // Set the ball's initial velocity and destination
         SetBallInitVelocity(ballRb, setToLocation, 5.0f);
         ballManager.goingTo = setToLocation;
+        ballManager.offCourse = false;
+
+        // Play the set sound for the bird
+        AudioManager.PlayBirdSound(birdType, SoundType.SET, 1.0f);
+        AudioManager.PlayBallPlayerInteractionSound();
 
         // Update game manager fields
         gameManager.gameState = GameManager.GameState.Set;
         gameManager.lastHit = gameObject;
+        if (animator != null)
+        {
+            animator.SetTrigger("Set");
+        }
     }
 
     // Spike the ball
@@ -226,7 +319,7 @@ public class BallInteract : MonoBehaviour
         }
 
         // Get the direction value
-        Vector2 dir = InputSystem.actions.FindAction("Direction").ReadValue<Vector2>();
+        Vector2 dir = playerInput.actions.FindAction("Direction").ReadValue<Vector2>();
 
         // If player wants to spike towards top or bottom, update set to location
         if (dir.y < -0.64f)
@@ -241,6 +334,7 @@ public class BallInteract : MonoBehaviour
         // Set the ball's initial velocity and destination
         SetBallInitVelocity(ballRb, spikeToLocation, -1.0f);
         ballManager.goingTo = spikeToLocation;
+        ballManager.offCourse = false;
 
         // If this player has an offensive Toucan ability active, mark this spike unblockable
         ToucanOffensive toucan = GetComponent<ToucanOffensive>();
@@ -251,12 +345,20 @@ public class BallInteract : MonoBehaviour
             Debug.Log("Spike marked unblockable by Toucan offensive ability.");
         }
 
+        // Play the spike sound for the bird
+        AudioManager.PlayBirdSound(birdType, SoundType.SPIKE, 1.0f);
+        AudioManager.PlayBallPlayerInteractionSound();
+
         // Update game manager fields
         gameManager.gameState = GameManager.GameState.Spiked;
         gameManager.lastHit = gameObject;
+        if (animator != null)
+        {
+            animator.SetTrigger("Spike");
+        }
     }
 
-    private void ServeBall()
+    public void ServeBall()
     {
         // Set the serving location to middle-back of court on the rightside as default
         serveToLocation = new Vector3(8, 0, 0);
@@ -268,7 +370,7 @@ public class BallInteract : MonoBehaviour
         }
 
         // Get the direction value
-        Vector2 dir = InputSystem.actions.FindAction("Direction").ReadValue<Vector2>();
+        Vector2 dir = playerInput.actions.FindAction("Direction").ReadValue<Vector2>();
 
         // If player wants to set towards top or bottom, update set to location
         if (dir.y < -0.64f)
@@ -283,12 +385,21 @@ public class BallInteract : MonoBehaviour
         // Set the ball's initial velocity and destination
         SetBallInitVelocity(ballRb, serveToLocation, 6.0f);
         ballManager.goingTo = serveToLocation;
+        ballManager.offCourse = false;
+
+        // Play sounds
+        AudioManager.PlayBallPlayerInteractionSound();
 
         // Update game manager fields
         gameManager.gameState = GameManager.GameState.Served;
         gameManager.lastHit = gameObject;
         gameManager.leftAttack = onLeft;
         serverMovement.controlMovement(true,true); // christofort: let the server move after gameState updates
+        serverMovement.overrideRotation = false; // allow normal rotation after serve
+        if (animator != null)
+        {
+            animator.SetTrigger("Spike");
+        }
     }
 
     private void BlockBall()
@@ -307,12 +418,12 @@ public class BallInteract : MonoBehaviour
         }
         
         // sends ball back to attacker's side near the net
-        blockToLocation = new Vector3(6f, 0f, 0f);
+        blockToLocation = new Vector3(-6f, 0f, 0f);
 
         if (onLeft) blockToLocation *= -1;
 
         // directional control
-        Vector2 dir = InputSystem.actions.FindAction("Direction").ReadValue<Vector2>();
+        Vector2 dir = playerInput.actions.FindAction("Direction").ReadValue<Vector2>();
 
         if (dir.y < -0.64f) blockToLocation.z -= 3f;
         else if (dir.y > 0.64f) blockToLocation.z += 3f;
@@ -320,11 +431,16 @@ public class BallInteract : MonoBehaviour
         // want fast and flat arc
         SetBallInitVelocity(ballRb, blockToLocation, -1.0f);
         ballManager.goingTo = blockToLocation;
+        ballManager.offCourse = false;
 
         // Update game state
-        gameManager.gameState = GameManager.GameState.Spiked;
+        gameManager.gameState = GameManager.GameState.Blocked;
         gameManager.lastHit = gameObject;
         gameManager.leftAttack = onLeft;
+        if (animator != null)
+        {
+            animator.SetTrigger("Block");
+        }
     }
 
     // Setting the ball's velocity when interacting with it
@@ -369,7 +485,16 @@ public class BallInteract : MonoBehaviour
 
             // Set speed of inital velocity
             initVel.Normalize();
-            initVel *= spikeSpeed;
+
+            // If blocking, want half of the spike speed stuff
+            if (gameManager.gameState.Equals(GameManager.GameState.Blocked))
+            {
+                initVel *= baseSpikeSpeed * (1.0f + spikeStat * 0.1f) * 0.5f; 
+            }
+            else
+            {
+                initVel *= baseSpikeSpeed * (1.0f + spikeStat * 0.1f);  
+            }
 
             // Set the ball's intial velocity
             ballRb.linearVelocity = initVel;

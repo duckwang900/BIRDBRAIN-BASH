@@ -1,5 +1,6 @@
 using UnityEngine;
 using System;
+using System.Collections;
 
 public class AIBehavior : MonoBehaviour
 {
@@ -11,13 +12,17 @@ public class AIBehavior : MonoBehaviour
     public BallManager ballManager; // Script that manages ball collisions
     public float interactionRadius = 5f; // How far the character can interact with the ball
 
+    [Header("Animation")]
+    public Animator animator; // Animator component for controlling animations
+
     [Header("Movement Attributes")]
     public float maxGroundSpeed = 1.0f; // Max speed that the character can move on the ground
     public float maxAirSpeed = 1.0f; // Max speed that the character can move in the air
     public float jumpForce = 1.0f; // Force the character uses to jump 
-
+    public float rotationSpeed = 10.0f; // How fast the AI rotates to movement direction
     private float directionChangeWeight = 15f; // How quickly the character can change direction
     private bool grounded = false; // If the character is touching the ground
+    private Transform contactPoint; // Reference for interact radius
     private GameObject ball; // The ball in the game
     private Rigidbody ballRb; // The rigidbody of the ball
     private Vector3 bumpToLocation; // Where the ball will go after bumping
@@ -26,6 +31,10 @@ public class AIBehavior : MonoBehaviour
     private Vector3 serveToLocation; // Where the ball will go after serving
     private float spikeSpeed; // Speed of the ball when spiked
     private float timeTilServe; // Time remaining until AI can serve
+    private ParticleSystem dustParticles; // Particle system for ground dust
+    [HideInInspector] public bool overrideRotation = false; // Allow external override of rotation
+    [HideInInspector] public Quaternion targetRotation; // Target rotation when not overridden
+    private bool isWalking = false; // Whether the AI is currently walking
 
     // Start is called once before the first execution of Update after the MonoBehaviour is created
     void Start()
@@ -50,12 +59,52 @@ public class AIBehavior : MonoBehaviour
         // Check to see the ball manager was set in the inspector
         if (ballManager == null)
         {
-            Debug.LogError("Ball Manager was not set in inspector for AIBehavior!");
+            ballManager = ball.GetComponent<BallManager>();
+
+        }
+        
+        // If not assigned in scene, try to find the game manager
+        if (gameManager == null)
+        {
+            gameManager = GameObject.Find("GameManager").GetComponent<GameManager>();
         }
 
         // Set the spike speed and the amount of time AI takes to serve
         spikeSpeed = 10f;
         timeTilServe = 2f;
+
+        // Initialize target rotation to current rotation
+        targetRotation = transform.rotation;
+
+        // Get particle system for ground dust
+        dustParticles = GetComponent<ParticleSystem>();
+
+        // locate contact point child safely
+        var cpTrans = transform.Find("ContactPoint");
+        if (cpTrans != null)
+        {
+            contactPoint = cpTrans;
+        }
+        else
+        {
+            Debug.LogErrorFormat("Could not find contact point for {0}. Using root as fallback.", transform.name);
+            contactPoint = transform;
+        }
+        
+        // Check animator
+        if (animator == null)
+        {
+            animator = GetComponent<Animator>();
+            if (animator == null)
+            {
+                animator = GetComponentInChildren<Animator>();
+            }
+            if (animator == null)
+            {
+                animator = GetComponentInParent<Animator>();
+            }
+        }
+        Debug.Log("Animator initialized: " + (animator != null ? "SUCCESS" : "FAILED - NULL"));
     }
 
     // Update is called once per frame
@@ -65,6 +114,39 @@ public class AIBehavior : MonoBehaviour
         if (ball != null && ballRb != null)
         {
             CheckState();
+        }
+    }
+
+    // Apply rotation smoothly
+    void FixedUpdate()
+    {
+        if (!overrideRotation || Vector3.Distance(transform.eulerAngles, targetRotation.eulerAngles) > 0.1f)
+        {
+            transform.rotation = Quaternion.Slerp(transform.rotation, targetRotation, rotationSpeed * Time.fixedDeltaTime);
+        }
+
+        // Check if AI is moving
+        Rigidbody rb = GetComponent<Rigidbody>();
+        isWalking = new Vector2(rb.linearVelocity.x, rb.linearVelocity.z).magnitude >= 0.1f;
+
+        // Ensure animator is assigned
+        if (animator == null)
+        {
+            animator = GetComponent<Animator>();
+            if (animator == null)
+            {
+                animator = GetComponentInChildren<Animator>();
+            }
+            if (animator == null)
+            {
+                animator = GetComponentInParent<Animator>();
+            }
+        }
+        
+        // Update animator
+        if (animator != null)
+        {
+            animator.SetBool("isWalking", isWalking);
         }
     }
 
@@ -78,7 +160,7 @@ public class AIBehavior : MonoBehaviour
             switch (gameManager.gameState)
             {
                 // If the ball was just spiked or served
-                case GameManager.GameState.Spiked: case GameManager.GameState.Served:
+                case GameManager.GameState.Spiked: case GameManager.GameState.Served: case GameManager.GameState.Blocked:
                     // If the AI is near the ball and the ball is on its way down, bump the ball
                     if (IsAINearBall() && ballRb.linearVelocity.y < 0)
                     {
@@ -111,7 +193,7 @@ public class AIBehavior : MonoBehaviour
                     if (ballRb.linearVelocity.y < 0)
                     {
                         // If the AI not under the ball, move them to a better position
-                        if (Vector2.Distance(aiPos, ballPos) > 1f)
+                        if (Vector2.Distance(aiPos, ballPos) > interactionRadius)
                         {
                             MoveAI(true);
                         }
@@ -162,8 +244,14 @@ public class AIBehavior : MonoBehaviour
     // Check if the AI is legally able to hit the ball
     private bool CanHit()
     {
+        // If the point has ended, they cannot hit the ball
+        if (gameManager.gameState.Equals(GameManager.GameState.PointEnd)) return false;
+
         // If this AI just hit the ball, they cannot hit it again
         if (gameObject.Equals(gameManager.lastHit)) return false;
+
+        // If the AI is in the air and the ball has just been blocked, they cannot bump it
+        if (gameManager.gameState.Equals(GameManager.GameState.Blocked) && !grounded) return false;
 
         // If the ball has been served by the other team, they can hit
         if (!gameManager.leftAttack.Equals(onLeft) && gameManager.gameState.Equals(GameManager.GameState.Served)) return true;
@@ -185,8 +273,19 @@ public class AIBehavior : MonoBehaviour
     // Check if the AI is near the ball
     private bool IsAINearBall()
     {
-        // Get the distance the AI is from the ball, return whether it is less than or equal that interation radius
-        float distance = Vector3.Distance(transform.position, ball.transform.position);
+        // guard against missing references
+        if (ball == null)
+        {
+            Debug.LogWarning("AIBehavior.IsAINearBall called but ball is null");
+            return false;
+        }
+        if (contactPoint == null)
+        {
+            Debug.LogWarning("AIBehavior contactPoint missing");
+            return false;
+        }
+        // Get the distance the AI is from the ball, return whether it is less than or equal that interaction radius
+        float distance = Vector3.Distance(contactPoint.position, ball.transform.position);
         return distance <= interactionRadius;
     }
     
@@ -229,7 +328,24 @@ public class AIBehavior : MonoBehaviour
         // If the AI should move to hit the ball, move them to where the ball is supposed to go
         if (towardsBall)
         {
-            target = ballManager.goingTo;
+            // If the ball is off its course, move towards the ball
+            if (ballManager.offCourse)
+            {
+                target = ballRb.transform.position;
+            }
+            // Else, move towards where the ball is going to
+            else
+            {
+                target = ballManager.goingTo;
+            }  
+        }
+
+        // If the AI is close enough below the ball or near where the ball would land, don't do anything
+        Vector2 targetGroundLocation = new Vector2(target.x, target.z);
+        Vector2 aiGroundLocation = new Vector2(transform.position.x, transform.position.z);
+        if (Vector2.Distance(targetGroundLocation, aiGroundLocation) < 1.0f)
+        {
+            return;
         }
 
         // Get the AI's rigidbody
@@ -240,9 +356,12 @@ public class AIBehavior : MonoBehaviour
         float dz = target.z - transform.position.z;
         Vector2 dir = new Vector2(dx, dz);
 
-        // If the AI is not already at the target
-        if (!dir.Equals(Vector2.zero))
+        // If the AI is not already at the target (use magnitude instead of Equals for floating-point safety)
+        if (dir.magnitude > 0.5f)
         {
+            // Normalize direction for consistent acceleration
+            dir.Normalize();
+            
             // Calculate new velocity
             Vector2 newVelocity = new Vector2(rb.linearVelocity.x, rb.linearVelocity.z) + dir * Time.fixedDeltaTime * directionChangeWeight;
 
@@ -259,14 +378,47 @@ public class AIBehavior : MonoBehaviour
                 newVelocity *= maxAirSpeed;
             }
 
+            // Update target rotation to face the movement direction
+            if (!overrideRotation)
+            {
+                Vector3 movementDirection = new Vector3(newVelocity.x, 0, newVelocity.y);
+                if (movementDirection.magnitude > 0.1f)
+                {
+                    targetRotation = Quaternion.LookRotation(movementDirection);
+                }
+            }
+
             // Assign the AI's velocity to the new velocity
             rb.linearVelocity = new Vector3(newVelocity.x, rb.linearVelocity.y, newVelocity.y);
+        }
+        else
+        {
+            // Stop horizontal movement when at target
+            rb.linearVelocity = new Vector3(0, rb.linearVelocity.y, 0);
         }
     }
 
     // Bumping the ball
     private void BumpBall()
     {
+        Debug.Log(grounded);
+        // Ensure animator is assigned
+        if (animator == null)
+        {
+            animator = GetComponent<Animator>();
+            if (animator == null)
+            {
+                animator = GetComponentInChildren<Animator>();
+            }
+            if (animator == null)
+            {
+                animator = GetComponentInParent<Animator>();
+            }
+            Debug.Log("Had to reassign animator in BumpBall: " + (animator != null ? "SUCCESS" : "FAILED"));
+        }
+        
+        Debug.Log("BumpBall called! Animator is: " + (animator != null ? "assigned" : "NULL"));
+        
         // Set bump to location to front middle of whatever side of the court is bumping
         bumpToLocation = new Vector3(2f, 0f, 0f);
         if (onLeft)
@@ -277,18 +429,47 @@ public class AIBehavior : MonoBehaviour
         // Set the ball's intial velocity and destination
         SetBallInitVelocity(ballRb, bumpToLocation, 5.0f);
         ballManager.goingTo = bumpToLocation;
+        ballManager.offCourse = false;
+
+        // Play sounds
+        AudioManager.PlayBallPlayerInteractionSound();
 
         // Update game manager fields
         gameManager.gameState = GameManager.GameState.Bumped;
         gameManager.lastHit = gameObject;
         gameManager.leftAttack = onLeft;
+
+        // Trigger bump animation
+        if (animator != null)
+        {
+            Debug.Log("Setting Bump trigger!");
+            animator.SetTrigger("Bump");
+        }
     }
 
     // Setting the ball
     private void SetBall()
     {        
+        // Ensure animator is assigned
+        if (animator == null)
+        {
+            animator = GetComponent<Animator>();
+            if (animator == null)
+            {
+                animator = GetComponentInChildren<Animator>();
+            }
+            if (animator == null)
+            {
+                animator = GetComponentInParent<Animator>();
+            }
+        }
+        
         // Set the setting location to middle of court as default
-        setToLocation = bumpToLocation;
+        setToLocation = new Vector3(2f, 0f, 0f);
+        if (onLeft)
+        {
+            setToLocation *= -1;
+        }
 
         // Randomly decide to set it elsewhere
         float rand = UnityEngine.Random.Range(0f, 1f);
@@ -304,15 +485,39 @@ public class AIBehavior : MonoBehaviour
         // Set the ball's initial velocity and destination
         SetBallInitVelocity(ballRb, setToLocation, 6.0f);
         ballManager.goingTo = setToLocation;
+        ballManager.offCourse = false;
+
+        // Play sounds
+        AudioManager.PlayBallPlayerInteractionSound();
 
         // Update game manager fields
         gameManager.gameState = GameManager.GameState.Set;
         gameManager.lastHit = gameObject;
+
+        // Trigger set animation
+        if (animator != null)
+        {
+            animator.SetTrigger("Set");
+        }
     }
 
     // Spiking the ball
     private void SpikeBall()
     {
+        // Ensure animator is assigned
+        if (animator == null)
+        {
+            animator = GetComponent<Animator>();
+            if (animator == null)
+            {
+                animator = GetComponentInChildren<Animator>();
+            }
+            if (animator == null)
+            {
+                animator = GetComponentInParent<Animator>();
+            }
+        }
+        
         // Set the spiking location to middle-back of court on the rightside as default
         spikeToLocation = new Vector3(8, 0, 0);
 
@@ -336,15 +541,39 @@ public class AIBehavior : MonoBehaviour
         // Set the ball's initial velocity and destination
         SetBallInitVelocity(ballRb, spikeToLocation, -1.0f);
         ballManager.goingTo = spikeToLocation;
+        ballManager.offCourse = false;
+
+        // Play sounds
+        AudioManager.PlayBallPlayerInteractionSound();
 
         // Update game manager fields
         gameManager.gameState = GameManager.GameState.Spiked;
         gameManager.lastHit = gameObject;
+
+        // Trigger spike animation
+        if (animator != null)
+        {
+            animator.SetTrigger("Spike");
+        }
     }
 
     // Serving the ball
     private void ServeBall()
     {
+        // Ensure animator is assigned
+        if (animator == null)
+        {
+            animator = GetComponent<Animator>();
+            if (animator == null)
+            {
+                animator = GetComponentInChildren<Animator>();
+            }
+            if (animator == null)
+            {
+                animator = GetComponentInParent<Animator>();
+            }
+        }
+        
         // Set the serving location to middle-back of court on the rightside as default
         serveToLocation = new Vector3(8, 0, 0);
 
@@ -368,11 +597,21 @@ public class AIBehavior : MonoBehaviour
         // Set the ball's initial velocity and destination
         SetBallInitVelocity(ballRb, serveToLocation, 5.0f);
         ballManager.goingTo = serveToLocation;
+        ballManager.offCourse = false;
 
         // Update game manager fields
         gameManager.gameState = GameManager.GameState.Served;
         gameManager.lastHit = gameObject;
         gameManager.leftAttack = onLeft;
+
+        // Play sounds
+        AudioManager.PlayBallPlayerInteractionSound();
+
+        // Trigger serve animation
+        if (animator != null)
+        {
+            animator.SetTrigger("Spike");
+        }
         
         // Reset timer for serve
         timeTilServe = 2.0f;
@@ -427,6 +666,33 @@ public class AIBehavior : MonoBehaviour
         }
     }
 
+    public void BuffStats(int increase, int time)
+    {
+        StartCoroutine(BuffTimer(increase, time));
+    }
+
+    public IEnumerator BuffTimer(int increase, int time)
+    {
+        Debug.Log("BUFFING...");
+        Debug.Log("ORIGINAL = " + maxGroundSpeed);
+        
+        float originalMaxGroundSpeed = maxGroundSpeed;
+        float originalMaxAirSpeed = maxAirSpeed;
+        // originalJumpForce = jumpForce;
+
+        maxGroundSpeed += increase;
+        maxAirSpeed += increase;
+        // jumpForce += increase;
+
+        Debug.Log("NEW = "+ maxGroundSpeed);
+
+        yield return new WaitForSeconds(time);
+
+        maxGroundSpeed = originalMaxGroundSpeed;
+        maxAirSpeed = originalMaxAirSpeed;
+        // jumpForce = originalJumpForce;
+    }
+
     // Calls whenever the character collides with another collider or rigidbody
     void OnCollisionEnter(Collision other)
     {
@@ -434,7 +700,11 @@ public class AIBehavior : MonoBehaviour
         if (other.gameObject.layer == 6)
         {
             grounded = true;
-            // Debug.Log("AI has landed.");
+            // Resume particle emission when landing
+            if (dustParticles != null)
+            {
+                dustParticles.Play();
+            }
         }
     }
 
@@ -445,7 +715,11 @@ public class AIBehavior : MonoBehaviour
         if (other.gameObject.layer == 6)
         {
             grounded = false;
-            // Debug.Log("AI has jumped.");
+            // Stop particle emission when airborne
+            if (dustParticles != null)
+            {
+                dustParticles.Stop();
+            }
         }
     }
 }
