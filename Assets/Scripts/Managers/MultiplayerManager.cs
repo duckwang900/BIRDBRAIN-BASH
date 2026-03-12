@@ -75,7 +75,17 @@ public class MultiplayerManager : MonoBehaviour
             // Give the player the necessary scripts to move and interact with the ball
             MakePlayer(player.gameObject, playerCount);
             player.actions.FindActionMap("Player").Enable();
-            
+
+        // set the bird type that was chosen on the selection screen, if available
+        if (DataTransferManager.selectedBirds != null && DataTransferManager.selectedBirds.Count > playerCount)
+        {
+            BallInteract bi = player.gameObject.GetComponent<BallInteract>();
+            if (bi != null)
+            {
+                bi.SetBirdType(DataTransferManager.selectedBirds[playerCount]);
+            }
+        }
+
             // Increment player count
             playerCount++;
         }
@@ -203,6 +213,12 @@ public class MultiplayerManager : MonoBehaviour
         ballInteract.onLeft = playerCount < 2 ? true : false;
         ballInteract.spikeStat = 15.0f;
         ballInteract.interactionRadius = 2.5f;
+
+        // if the selection manager added a bird type, apply it here as well
+        if (DataTransferManager.selectedBirds != null && DataTransferManager.selectedBirds.Count > playerCount)
+        {
+            ballInteract.SetBirdType(DataTransferManager.selectedBirds[playerCount]);
+        }
 
         // Assign the transform of the player
         player.transform.position = playerSpawnpoints[playerCount].position;
