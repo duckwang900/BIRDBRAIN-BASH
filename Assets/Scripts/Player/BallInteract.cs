@@ -18,7 +18,14 @@ public class BallInteract : MonoBehaviour
     [Header("Spike Stat")]
     public float spikeStat; //Spiking power for the bird
     
-    [SerializeField] private BirdType birdType; // Type of the bird for audio noises
+    [Header("Bird Selection")]
+    [SerializeField] private BirdType birdType = BirdType.PENGUIN; // Type of the bird for audio noises; default to penguin
+
+    // Change the birdType from other managers
+    public void SetBirdType(BirdType type) { birdType = type; }
+
+    // EJ: need read-only access to the current bird type for other scripts
+    public BirdType GetBirdType() => birdType;
     private Transform contactPoint; // Reference for interaction radius
     private GameObject ball; // Game object for the ball
     private Rigidbody ballRb; // Rigid body for the ball
@@ -93,7 +100,7 @@ public class BallInteract : MonoBehaviour
     }
 
     // If the player is near the ball
-    private bool IsPlayerNearBall()
+    public bool IsPlayerNearBall()
     {
         if (ball == null) return false;
         if (contactPoint == null)
@@ -196,6 +203,10 @@ public class BallInteract : MonoBehaviour
                             baseRotation *= Quaternion.Euler(serverMovement.rotationOffsetEuler);
                         }
                         serverMovement.targetRotation = baseRotation;
+                    }
+                    else
+                    {
+                        serverMovement.controlMovement(true, true);
                     }
                     // If this player is the one serving and they press the serve button, serve the ball
                     if (gameManager.server == gameObject && playerInput.actions.FindAction("Serve").WasPressedThisFrame())
@@ -307,7 +318,7 @@ public class BallInteract : MonoBehaviour
     }
 
     // Spike the ball
-    private void SpikeBall()
+    public void SpikeBall()
     {
         // Set the spiking location to middle-back of court on the rightside as default
         spikeToLocation = new Vector3(8, 0, 0);
