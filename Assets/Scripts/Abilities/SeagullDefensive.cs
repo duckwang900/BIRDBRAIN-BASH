@@ -29,45 +29,87 @@ public class SeagullDefensive : BirdAbility
     {
         if (!isAbilityReady)
         {
+            Debug.Log("SeagullDefensive: Ability not ready (cooldown).");
             return;
         }
-        //Block ability if this player is the server (so you can't dash while you serve)
         if (gameManager.gameState == GameManager.GameState.PointStart && gameManager.server == gameObject)
         {
+            Debug.Log("SeagullDefensive: Can't dash while serving at point start.");
             return;
         }
-
-        //Block ability if the ball has already been served by your side
         if (gameManager.gameState == GameManager.GameState.Served && gameManager.server == gameObject)
         {
+            Debug.Log("SeagullDefensive: Can't dash after serve by your side.");
             return;
         }
-
-        // Block ability if cannot use abilities
         if (!canUseAbilities())
         {
+            Debug.Log("SeagullDefensive: Abilities are disabled.");
             return;
         }
-
+        Debug.Log("SeagullDefensive: Passed all checks, checking CanDashToBall...");
         if (CanDashToBall())
         {
+            Debug.Log("SeagullDefensive: CanDashToBall is TRUE, starting dash.");
             StartCoroutine(DashToBall());
+        }
+        else
+        {
+            Debug.Log("SeagullDefensive: CanDashToBall is FALSE, dash not started.");
         }
     }
 
-    private bool CanDashToBall()
+private bool CanDashToBall()
+{
+    GameObject ball = gameManager.ball;
+    if (ball == null)
     {
-        // If it's not on your side of the court, you cannot dash to the ball
-        bool onYourSide = GetComponent<BallInteract>().onLeft != gameManager.leftAttack;
-        if (!onYourSide) return false;
-
-        // If it has not been spiked or blockedby other team, you cannot dash to the ball. Otherwise, you can
-        return gameManager.gameState.Equals(GameManager.GameState.Spiked) || gameManager.gameState.Equals(GameManager.GameState.Blocked);
+        Debug.Log("SeagullDefensive: Ball is null!");
+        return false;
     }
+
+    // Check if ball is on the player's side
+    bool onLeft = GetComponent<BallInteract>().onLeft;
+    float ballX = ball.transform.position.x;
+    bool ballOnMySide = (onLeft && ballX < 0) || (!onLeft && ballX > 0);
+
+    if (!ballOnMySide)
+    {
+        Debug.Log($"SeagullDefensive: Ball NOT on my side (onLeft={onLeft}, ballX={ballX})");
+        return false;
+    }
+
+    // Allow dashing during any active play state where the ball is in motion
+    GameManager.GameState state = gameManager.gameState;
+    bool validState = state == GameManager.GameState.Spiked ||
+                      state == GameManager.GameState.Blocked ||
+                      state == GameManager.GameState.Bumped ||
+                      state == GameManager.GameState.Set;
+
+    if (!validState)
+    {
+        Debug.Log($"SeagullDefensive: Invalid game state for dash: {state}");
+        return false;
+    }
+
+    return true;
+}
+
     
     private IEnumerator DashToBall()
     {
+
         isAbilityReady = false;
+
+        // Play defensive sound
+        AudioManager.PlayBirdSound(BirdType.SEAGULL, SoundType.DEFENSIVE, 1.0f);
+
+        // Trigger defensive ability animation if animator exists
+        var myBallInteract = GetComponent<BallInteract>();
+        if (myBallInteract != null && myBallInteract.animator != null)
+        {
+            myBallInteract.animator.SetTrigger("DefensiveAbility");
+        }
 
         //Check if ball is on the player's side
         GameObject ball = gameManager.ball;

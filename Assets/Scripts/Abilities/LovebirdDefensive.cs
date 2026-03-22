@@ -67,6 +67,17 @@ public class LovebirdDefensive : BirdAbility
         {
             yield break;
         }
+
+        // Play defensive sound
+        AudioManager.PlayBirdSound(BirdType.LOVEBIRD, SoundType.DEFENSIVE, 1.0f);
+
+        // Trigger defensive ability animation if animator exists
+        var myBallInteract = GetComponent<BallInteract>();
+        if (myBallInteract != null && myBallInteract.animator != null)
+        {
+            myBallInteract.animator.SetTrigger("DefensiveAbility");
+        }
+
         Debug.Log("Dashing towards ally...");
         // Continues moving as long as the distance is within 1 unit
         while (Vector3.Distance(transform.position, ally.transform.position) > dashToDistance)

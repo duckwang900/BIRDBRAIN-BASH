@@ -57,11 +57,22 @@ public class SeagullOffensive : BirdAbility
             try
             {
                 opponent.GetComponent<CharacterMovement>().BuffStats(-debuffAmount, debuffLength);
+                // Trigger offensive ability animation if animator exists
+                var cm = opponent.GetComponent<CharacterMovement>();
+                if (cm != null && cm.animator != null)
+                {
+                    cm.animator.SetTrigger("OffensiveAbility");
+                }
             }
             catch (NullReferenceException)
             {
                 // Must be an AI opponent
-                opponent.GetComponent<AIBehavior>().BuffStats(-debuffAmount, debuffLength);
+                var ai = opponent.GetComponent<AIBehavior>();
+                ai.BuffStats(-debuffAmount, debuffLength);
+                if (ai != null && ai.animator != null)
+                {
+                    ai.animator.SetTrigger("OffensiveAbility");
+                }
             }
             catch (Exception)
             {
@@ -69,11 +80,17 @@ public class SeagullOffensive : BirdAbility
             }
         }
 
-    
+        // Also trigger animation for this player if animator exists
+        var myBallInteract = GetComponent<BallInteract>();
+        if (myBallInteract != null && myBallInteract.animator != null)
+        {
+            myBallInteract.animator.SetTrigger("OffensiveAbility");
+        }
+
         _debuffWindow = false;
 
-        // Play laugh sound
-        AudioManager.PlayBirdSound(BirdType.SEAGULL, SoundType.DEFENSIVE, 1.0f);
+        // Play offensive sound
+        AudioManager.PlayBirdSound(BirdType.SEAGULL, SoundType.OFFENSIVE, 1.0f);
     }
 
     public bool OnScore(bool leftScored)

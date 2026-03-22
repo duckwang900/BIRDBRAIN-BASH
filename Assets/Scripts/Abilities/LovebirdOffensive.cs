@@ -56,6 +56,16 @@ public class LoveBirdOffensive : MonoBehaviour
             _onCooldown = true;
             StartCoroutine(Cooldown());
 
+            // Play offensive sound
+            AudioManager.PlayBirdSound(BirdType.LOVEBIRD, SoundType.OFFENSIVE, 1.0f);
+
+            // Trigger offensive ability animation if animator exists
+            var myBallInteract = GetComponent<BallInteract>();
+            if (myBallInteract != null && myBallInteract.animator != null)
+            {
+                myBallInteract.animator.SetTrigger("OffensiveAbility");
+            }
+
             // Gets opponents
             if (_onLeft)
             {
