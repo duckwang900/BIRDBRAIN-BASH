@@ -499,7 +499,8 @@ public class AIBehavior : MonoBehaviour
         ballManager.goingTo = setToLocation;
         ballManager.offCourse = false;
 
-        // Play sounds
+        // Play the set sound for the bird
+        AudioManager.PlayBirdSound(birdType, SoundType.SET, 1.0f);
         AudioManager.PlayBallPlayerInteractionSound();
 
         // Update game manager fields
