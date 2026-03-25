@@ -25,6 +25,25 @@ public class ScoreManager : MonoBehaviour
     UnityEvent LeftScored;
     UnityEvent RightScored;
 
+    private static ScoreManager instance; // Private instance of the GameManager that other classes cannot reference
+    public static ScoreManager Instance // Public instance of GameManager that other classes can reference
+    {
+        get
+        {
+            if (instance == null)
+            {
+                instance = new ScoreManager();
+            }
+            return instance;
+        }
+    }
+
+    void Awake()
+    {
+        // Initialize singleton to this script
+        instance = this;
+    }
+
     // Start is called once before the first execution of Update after the MonoBehaviour is created
     void Start()
     {

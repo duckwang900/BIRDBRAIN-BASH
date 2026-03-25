@@ -125,7 +125,6 @@ private bool CanDashToBall()
         float fixedY = 0.5f;
         
         Rigidbody ballRb = ball.GetComponent<Rigidbody>();
-        BallManager ballManager = ball.GetComponent<BallManager>();
 
         //Freeze Y so the dash stays level
         rb.constraints = RigidbodyConstraints.FreezeRotation | RigidbodyConstraints.FreezePositionY;
@@ -134,7 +133,7 @@ private bool CanDashToBall()
         while (true)
         {
             //Update landing position every frame (ball might move)
-            Vector3 landingPos = ballManager.goingTo;
+            Vector3 landingPos = BallManager.Instance.goingTo;
             landingPos.y = fixedY;
 
             //Direction toward the ball
@@ -166,7 +165,7 @@ private bool CanDashToBall()
         }
 
         //Ensure penguin/seagull is exactly on the landing spot at a fixed Y
-        rb.MovePosition(new Vector3(ballManager.goingTo.x, fixedY, ballManager.goingTo.z));
+        rb.MovePosition(new Vector3(BallManager.Instance.goingTo.x, fixedY, BallManager.Instance.goingTo.z));
 
         BallInteract ballInteract = GetComponent<BallInteract>();
         if (ballInteract != null)

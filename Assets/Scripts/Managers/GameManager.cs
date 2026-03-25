@@ -1,6 +1,4 @@
-using Unity.VisualScripting;
 using UnityEngine;
-using UnityEngine.InputSystem;
 
 public class GameManager : MonoBehaviour
 {
@@ -11,9 +9,6 @@ public class GameManager : MonoBehaviour
     [Header("Right Team")]
     public GameObject rightPlayer1; // First player on right side
     public GameObject rightPlayer2; // Second player on right side
-
-    [Header("Other Managers")]
-    public ScoreManager scoreManager; // Manager for the score
 
     [Header("Game Manager Stuff")]
     public GameState gameState; // State of the match

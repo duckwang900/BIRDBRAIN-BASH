@@ -8,6 +8,25 @@ public class BallManager : MonoBehaviour
     private Rigidbody rb; // Rigidbody of the ball
     public System.Action<Collision> onBallCollision; // Christofort: Event for when the ball collides with something
 
+    private static BallManager instance; // Private instance of the GameManager that other classes cannot reference
+    public static BallManager Instance // Public instance of GameManager that other classes can reference
+    {
+        get
+        {
+            if (instance == null)
+            {
+                instance = new BallManager();
+            }
+            return instance;
+        }
+    }
+
+    void Awake()
+    {
+        // Initialize singleton to this script
+        instance = this;
+    }
+
 
     // Start is called once before the first execution of Update after the MonoBehaviour is created
     void Start()

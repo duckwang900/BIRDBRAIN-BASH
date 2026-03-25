@@ -119,7 +119,7 @@ public class SeagullOffensive : BirdAbility
         }
 
         // Get which side just scored the point
-        bool leftJustScored = gameManager.scoreManager.side1ServeIndicator.activeInHierarchy;
+        bool leftJustScored = ScoreManager.Instance.side1ServeIndicator.activeInHierarchy;
 
         // Return true if they equal
         return _onLeft == leftJustScored;

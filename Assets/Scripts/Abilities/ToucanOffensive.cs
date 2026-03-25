@@ -11,8 +11,6 @@ public class ToucanOffensive : BirdAbility
     public bool abilityActive = false;
     private bool onCooldown = false;
 
-    public BallManager ballManager;
-
     // Activate the ability: next spike becomes unblockable
     public void TouCanDoIt()
     {
@@ -24,11 +22,6 @@ public class ToucanOffensive : BirdAbility
         {
             Debug.Log("Toucan Offense on cooldown");
             return;
-        }
-
-        if (ballManager == null)
-        {
-            Debug.LogWarning("ToucanOffensive: BallManager reference not set");
         }
 
         abilityActive = true;

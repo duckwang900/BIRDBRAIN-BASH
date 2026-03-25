@@ -14,8 +14,7 @@ public class AIBehavior : MonoBehaviour
     [Header("Game Manager")]
     public bool onLeft; // Whether this AI is on the left side of the net or not
 
-    [Header("Ball Manager")]
-    public BallManager ballManager; // Script that manages ball collisions
+    [Header("Ball Interaction")]
     public float interactionRadius = 2f; // How far the character can interact with the ball
 
     [Header("Animation")]
@@ -63,14 +62,6 @@ public class AIBehavior : MonoBehaviour
         {
             Debug.LogError("Ball game object was not found for AIBehavior!");
         }
-
-        // Check to see the ball manager was set in the inspector
-        if (ballManager == null)
-        {
-            ballManager = ball.GetComponent<BallManager>();
-
-        }
-    
 
         // Set the spike speed and the amount of time AI takes to serve
         spikeSpeed = 10f;
@@ -340,14 +331,14 @@ public class AIBehavior : MonoBehaviour
         if (towardsBall)
         {
             // If the ball is off its course, move towards the ball
-            if (ballManager.offCourse)
+            if (BallManager.Instance.offCourse)
             {
                 target = ballRb.transform.position;
             }
             // Else, move towards where the ball is going to
             else
             {
-                target = ballManager.goingTo;
+                target = BallManager.Instance.goingTo;
             }  
         }
 
@@ -439,8 +430,8 @@ public class AIBehavior : MonoBehaviour
         
         // Set the ball's intial velocity and destination
         SetBallInitVelocity(ballRb, bumpToLocation, 5.0f);
-        ballManager.goingTo = bumpToLocation;
-        ballManager.offCourse = false;
+        BallManager.Instance.goingTo = bumpToLocation;
+        BallManager.Instance.offCourse = false;
 
         // Play the bump sound for the bird
         AudioManager.PlayBirdSound(birdType, SoundType.BUMP, 1.0f);
@@ -496,8 +487,8 @@ public class AIBehavior : MonoBehaviour
 
         // Set the ball's initial velocity and destination
         SetBallInitVelocity(ballRb, setToLocation, 6.0f);
-        ballManager.goingTo = setToLocation;
-        ballManager.offCourse = false;
+        BallManager.Instance.goingTo = setToLocation;
+        BallManager.Instance.offCourse = false;
 
         // Play the set sound for the bird
         AudioManager.PlayBirdSound(birdType, SoundType.SET, 1.0f);
@@ -553,8 +544,8 @@ public class AIBehavior : MonoBehaviour
 
         // Set the ball's initial velocity and destination
         SetBallInitVelocity(ballRb, spikeToLocation, -1.0f);
-        ballManager.goingTo = spikeToLocation;
-        ballManager.offCourse = false;
+        BallManager.Instance.goingTo = spikeToLocation;
+        BallManager.Instance.offCourse = false;
 
         // Play the spike sound for the bird
         AudioManager.PlayBirdSound(birdType, SoundType.SPIKE, 1.0f);
@@ -610,8 +601,8 @@ public class AIBehavior : MonoBehaviour
 
         // Set the ball's initial velocity and destination
         SetBallInitVelocity(ballRb, serveToLocation, 5.0f);
-        ballManager.goingTo = serveToLocation;
-        ballManager.offCourse = false;
+        BallManager.Instance.goingTo = serveToLocation;
+        BallManager.Instance.offCourse = false;
 
         // Update game manager fields
         GameManager.Instance.gameState = GameManager.GameState.Served;

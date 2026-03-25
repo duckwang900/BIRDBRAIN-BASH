@@ -7,8 +7,7 @@ public class BallInteract : MonoBehaviour
     [Header("Game Manager")]
     public bool onLeft; // Whether the player is on the left court
 
-    [Header("Ball Manager")]
-    public BallManager ballManager; // Manager of the ball
+    [Header("Ball Interaction")]
     public float interactionRadius = 5f; // How far the ball can be from the player to interact with it
 
     [Header("Animation")]
@@ -57,11 +56,6 @@ public class BallInteract : MonoBehaviour
         else
         {
             Debug.LogError("Ball game object was not found in BallInteract!");
-        }
-
-        if (ballManager == null)
-        {
-            ballManager = ball.GetComponent<BallManager>();
         }
 
         // locate contact point child safely
@@ -250,8 +244,8 @@ public class BallInteract : MonoBehaviour
         
         // Set the ball's intial velocity and destination
         SetBallInitVelocity(ballRb, bumpToLocation, 5.0f);
-        ballManager.goingTo = bumpToLocation;
-        ballManager.offCourse = false;
+        BallManager.Instance.goingTo = bumpToLocation;
+        BallManager.Instance.offCourse = false;
 
         // Play the bump sound for the bird
         AudioManager.PlayBirdSound(birdType, SoundType.BUMP, 1.0f);
@@ -295,8 +289,8 @@ public class BallInteract : MonoBehaviour
 
         // Set the ball's initial velocity and destination
         SetBallInitVelocity(ballRb, setToLocation, 5.0f);
-        ballManager.goingTo = setToLocation;
-        ballManager.offCourse = false;
+        BallManager.Instance.goingTo = setToLocation;
+        BallManager.Instance.offCourse = false;
 
         // Play the set sound for the bird
         AudioManager.PlayBirdSound(birdType, SoundType.SET, 1.0f);
@@ -338,14 +332,14 @@ public class BallInteract : MonoBehaviour
 
         // Set the ball's initial velocity and destination
         SetBallInitVelocity(ballRb, spikeToLocation, -1.0f);
-        ballManager.goingTo = spikeToLocation;
-        ballManager.offCourse = false;
+        BallManager.Instance.goingTo = spikeToLocation;
+        BallManager.Instance.offCourse = false;
 
         // If this player has an offensive Toucan ability active, mark this spike unblockable
         ToucanOffensive toucan = GetComponent<ToucanOffensive>();
         if (toucan != null && toucan.abilityActive)
         {
-            if (ballManager != null) ballManager.unblockableOwner = gameObject;
+            BallManager.Instance.unblockableOwner = gameObject;
             toucan.abilityActive = false; // consume ability on spike
             Debug.Log("Spike marked unblockable by Toucan offensive ability.");
         }
@@ -389,8 +383,8 @@ public class BallInteract : MonoBehaviour
 
         // Set the ball's initial velocity and destination
         SetBallInitVelocity(ballRb, serveToLocation, 6.0f);
-        ballManager.goingTo = serveToLocation;
-        ballManager.offCourse = false;
+        BallManager.Instance.goingTo = serveToLocation;
+        BallManager.Instance.offCourse = false;
 
         // Play serve sound
         AudioManager.PlayBallPlayerInteractionSound();
@@ -415,10 +409,10 @@ public class BallInteract : MonoBehaviour
         AudioManager.PlayBallPlayerInteractionSound();
         // If the incoming spike is marked unblockable, only allow block
         // when the spike was NOT from the unblockable owner.
-        if (ballManager != null && ballManager.unblockableOwner != null)
+        if (BallManager.Instance.unblockableOwner != null)
         {
             // If the last spiker matches the unblockable owner, prevent blocking
-            if (GameManager.Instance.lastHit == ballManager.unblockableOwner)
+            if (GameManager.Instance.lastHit == BallManager.Instance.unblockableOwner)
             {
                 Debug.Log("Block attempted but spike is unblockable.");
                 return;
@@ -439,8 +433,8 @@ public class BallInteract : MonoBehaviour
 
         // want fast and flat arc
         SetBallInitVelocity(ballRb, blockToLocation, -1.0f);
-        ballManager.goingTo = blockToLocation;
-        ballManager.offCourse = false;
+        BallManager.Instance.goingTo = blockToLocation;
+        BallManager.Instance.offCourse = false;
 
         // Update game state
         GameManager.Instance.gameState = GameManager.GameState.Blocked;

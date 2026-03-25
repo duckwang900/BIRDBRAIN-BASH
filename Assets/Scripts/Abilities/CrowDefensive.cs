@@ -40,9 +40,9 @@ public class CrowDefensiveAbility : BirdAbility
             Debug.Log("Defensive ability on cooldown (" + cooldownTimer + " seconds remaining)");
         }
         // Check if coins exist and if score has changed since last round, if so reset coin count
-        if (oldScore != (gameManager.scoreManager.side1Score + gameManager.scoreManager.side2Score))
+        if (oldScore != (ScoreManager.Instance.side1Score + ScoreManager.Instance.side2Score))
         {
-            oldScore = gameManager.scoreManager.side1Score + gameManager.scoreManager.side2Score;
+            oldScore = ScoreManager.Instance.side1Score + ScoreManager.Instance.side2Score;
             // Do not let the coins carry over into the next round (if they exist)
             ClearCurrCoins();
             // Do not let the buff carry over into the next round (if active)

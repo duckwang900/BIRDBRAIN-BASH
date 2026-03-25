@@ -7,7 +7,6 @@ public class PelicanDefensive : BirdAbility
     public float cooldown; // Cooldown in seconds
     public int holdLength; // Amount the ability increases ally's stats
     public BallInteract ballInteract;
-    public GameObject ball;
     private bool onCooldown = false;
     private bool isBallEaten = false;
     private PlayerInput playerInput;
@@ -23,15 +22,14 @@ public class PelicanDefensive : BirdAbility
         if (isBallEaten && playerInput.actions.FindAction("Serve").WasPressedThisFrame())
         {
             Debug.Log("Pelican released the ball manually.");
-            if (ball != null)
-            {
-                ball.SetActive(true);
-                isBallEaten = false;
-            }
+            
+            BallManager.Instance.gameObject.SetActive(true);
+            isBallEaten = false;
+            
         }
         if (isBallEaten)
         {
-            ball.transform.position = transform.position + new Vector3(0, 1f, 0);
+            BallManager.Instance.gameObject.transform.position = transform.position + new Vector3(0, 1f, 0);
         }
         
     }
@@ -39,7 +37,6 @@ public class PelicanDefensive : BirdAbility
     public void Start()
     {
         ballInteract = GetComponent<BallInteract>();
-        ball = GameObject.FindGameObjectWithTag("Ball");
         playerInput = GetComponent<PlayerInput>();
     }
 
@@ -65,12 +62,11 @@ public class PelicanDefensive : BirdAbility
                 }
 
                 Debug.Log($"Pelican has eaten the ball. State: {gameManager.gameState}");
-                if (ball != null)
-                {
-                    ballInteract.ServeBall();
-                    ball.SetActive(false);
-                    isBallEaten = true;
-                }
+                
+                ballInteract.ServeBall();
+                BallManager.Instance.gameObject.SetActive(false);
+                isBallEaten = true;
+
                 StartCoroutine(Cooldown());
                 StartCoroutine(HoldTime());
             }
@@ -98,7 +94,7 @@ public class PelicanDefensive : BirdAbility
     public IEnumerator HoldTime()
     {
         yield return new WaitForSeconds(holdLength);
-        ball.SetActive(true);
+        BallManager.Instance.gameObject.SetActive(true);
         isBallEaten = false;
         ballInteract.ServeBall();
         Debug.Log("Pelican hold length is up!");
