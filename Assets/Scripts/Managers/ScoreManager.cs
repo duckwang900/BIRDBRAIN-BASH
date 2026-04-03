@@ -2,6 +2,7 @@ using UnityEngine;
 using System.Collections;
 using UnityEngine.Events;
 using TMPro;
+using System;
 
 public class ScoreManager : MonoBehaviour
 {
@@ -78,7 +79,7 @@ public class ScoreManager : MonoBehaviour
             inPlay = false;
             Debug.Log("side 2 scored! points: " + side2Score);
             RightScored.Invoke();
-            PlaySounds(false);
+            StartCoroutine(PlaySounds(false));
             CheckWinSet(false);
         } 
         // if it touches side 2, then side 1 scores
@@ -89,7 +90,7 @@ public class ScoreManager : MonoBehaviour
             inPlay = false;
             Debug.Log("side 1 scored! points: " + side1Score);
             LeftScored.Invoke();
-            PlaySounds(true);
+            StartCoroutine(PlaySounds(true));
             CheckWinSet(true);
         }
 
@@ -118,7 +119,7 @@ public class ScoreManager : MonoBehaviour
                 side1ScoreUI.text = side1Score.ToString();
                 inPlay = false;
                 Debug.Log("Out! side 1 scored! points: " + side1Score);
-                PlaySounds(true);
+                StartCoroutine(PlaySounds(true));
                 CheckWinSet(true);
             }
 
@@ -129,7 +130,7 @@ public class ScoreManager : MonoBehaviour
                 side2ScoreUI.text = side2Score.ToString();
                 inPlay = false;
                 Debug.Log("Out! side 2 scored! points: " + side2Score);
-                PlaySounds(false);
+                StartCoroutine(PlaySounds(false));
                 CheckWinSet(false);
             }
         }
@@ -146,14 +147,14 @@ public class ScoreManager : MonoBehaviour
             Debug.Log("side 1 wins! final score: " + side1Score + " to " + side2Score);
             side1SetsWon++;
             side1SetUI.text = side1SetsWon.ToString();
-            CheckMatchWin(leftJustScored);
+            CheckMatchWin();
         } 
         else if (side2Score >= 15 && side2Score - side1Score >= 2)
         {
             Debug.Log("side 2 wins! final score: " + side1Score + " to " + side2Score);
             side2SetsWon++;
             side2SetUI.text = side2SetsWon.ToString();
-            CheckMatchWin(leftJustScored);
+            CheckMatchWin();
         }
         else
         {
@@ -161,7 +162,7 @@ public class ScoreManager : MonoBehaviour
         }
     }
     //Checks if the Match is won, Best of 3 format
-    void CheckMatchWin(bool leftJustScored)
+    void CheckMatchWin()
     {
         if (side1SetsWon == 2)
         {
@@ -177,7 +178,25 @@ public class ScoreManager : MonoBehaviour
         {
             //Resets the score for next set
             ResetScore();
-            StartCoroutine(StartNextPoint(leftJustScored));
+            bool leftStartServer = SetServerForNewSet();
+            StartCoroutine(StartNextPoint(leftStartServer));
+        }
+    }
+
+    private bool SetServerForNewSet()
+    {
+        // If the first set was just won, set the server to the first player on the left
+        if (side1SetsWon + side2SetsWon == 1)
+        {
+            GameManager.Instance.server = GameManager.Instance.leftPlayer1;
+            leftLastScored = true;
+            return true;
+        }
+        else // The second set was just won, set the server to the second player on the right
+        {
+            GameManager.Instance.server = GameManager.Instance.rightPlayer2;
+            leftLastScored = false;
+            return false;
         }
     }
 
@@ -194,8 +213,8 @@ public class ScoreManager : MonoBehaviour
         // Updates UI For Which Side is Serving
         UpdateServeIndicator(leftJustScored);
 
-        // Wait 2 seconds
-        yield return new WaitForSeconds(2.0f);
+        // Wait 3 seconds
+        yield return new WaitForSeconds(3.0f);
 
         // Start the next point
         GameManager.Instance.leftAttack = leftLastScored;
@@ -248,34 +267,52 @@ public class ScoreManager : MonoBehaviour
     }
 
     // Play sounds once a point is scored
-    void PlaySounds(bool leftJustScored)
+    IEnumerator PlaySounds(bool leftJustScored)
     {
         AudioManager.PlayScoringSound(1.0f);
 
-        // TODO: FIX THIS WHEN IT'S NOT 4 AM AND I'M NOT MENTALLY EXHAUSTED (Roderic)
-        // // Get the four players' bird types from the game manager
-        // BirdType lbt1 = gameManager.leftPlayer1.GetComponent<BallInteract>()
+        yield return new WaitForSeconds(1.0f);
+
+        // Get the four players' bird types from the game manager
+        BirdType lbt1 = GetBirdType(GameManager.Instance.leftPlayer1);
+        BirdType lbt2 = GetBirdType(GameManager.Instance.leftPlayer2);
+        BirdType rbt1 = GetBirdType(GameManager.Instance.rightPlayer1);
+        BirdType rbt2 = GetBirdType(GameManager.Instance.rightPlayer2);
         
-        // // Play the correct sounds depending on which team just scored
-        // if (leftJustScored)
-        // {
-        //     AudioManager.PlayBirdSound(rightBirdType1, SoundType.SAD, 1.0f);
-        // }
-        // else
-        // {
-        //     AudioManager.PlayBirdSound(rightBirdType1, SoundType.HAPPY, 1.0f);
-        // }
+        // Play the correct sounds depending on which team just scored
+        if (leftJustScored)
+        {
+            // Play left team happy noises, wait a second, then play right side sad noises
+            AudioManager.PlayBirdSound(lbt1, SoundType.HAPPY, 1.0f);
+            AudioManager.PlayBirdSound(lbt2, SoundType.HAPPY, 1.0f);
+
+            yield return new WaitForSeconds(1.0f);
+
+            AudioManager.PlayBirdSound(rbt1, SoundType.SAD, 1.0f);
+            AudioManager.PlayBirdSound(rbt2, SoundType.SAD, 1.0f);
+        }
+        else
+        {
+            // Play left team happy noises, wait a second, then play right side sad noises
+            AudioManager.PlayBirdSound(rbt1, SoundType.HAPPY, 1.0f);
+            AudioManager.PlayBirdSound(rbt2, SoundType.HAPPY, 1.0f);
+
+            yield return new WaitForSeconds(1.0f);
+
+            AudioManager.PlayBirdSound(lbt1, SoundType.SAD, 1.0f);
+            AudioManager.PlayBirdSound(lbt2, SoundType.SAD, 1.0f);
+        }
     }
 
-    // BirdType GetBirdType(GameObject bird)
-    // {
-    //     try
-    //     {
-    //         return bird.GetComponent<BallInteract>().GetBirdType();
-    //     }
-    //     catch (NullReferenceException)
-    //     {
-    //         return bird.GetComponent<AIBehavior>().bir
-    //     }
-    // }
+    BirdType GetBirdType(GameObject bird)
+    {
+        try
+        {
+            return bird.GetComponent<BallInteract>().GetBirdType();
+        }
+        catch (NullReferenceException)
+        {
+            return bird.GetComponent<AIBehavior>().GetBirdType();
+        }
+    }
 }
