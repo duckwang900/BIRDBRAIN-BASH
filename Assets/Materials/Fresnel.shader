@@ -3,8 +3,9 @@ Shader "Custom/Fresnel"
     Properties
     {
         _RimColor ("Rim Color", Color) = (1,0.6,0.2,1)
-        _RimPower ("Rim Power", Range(0.1, 10)) = 2.0
+        _RimPower ("Rim Power", Range(0.1, 10)) = 1.0
         _RimWidth ("Rim Width", Range(0,1)) = 0.4
+        _RimThickness ("Rim Thickness", Range(0,1)) = 0.25
         _Alpha ("Alpha", Range(0,1)) = 0.9
     }
     SubShader
@@ -38,6 +39,7 @@ Shader "Custom/Fresnel"
             fixed4 _RimColor;
             float _RimPower;
             float _RimWidth;
+            float _RimThickness;
             float _Alpha;
 
             v2f vert(appdata v)
@@ -54,8 +56,9 @@ Shader "Custom/Fresnel"
                 float3 viewDir = normalize(_WorldSpaceCameraPos - i.worldPos);
                 float ndotv = 1.0 - saturate(dot(normalize(i.normal), viewDir));
                 float rim = pow(ndotv, _RimPower);
-                rim = smoothstep(_RimWidth, 1.0, rim);
-                fixed4 col = fixed4(_RimColor.rgb, _Alpha * rim);
+                // Use step for a hard edge, _RimWidth = where rim starts, _RimThickness = thickness of the outline
+                float rimMask = step(_RimWidth, rim) - step(_RimWidth + _RimThickness, rim);
+                fixed4 col = fixed4(_RimColor.rgb, _Alpha * rimMask);
                 return col;
             }
             ENDCG
