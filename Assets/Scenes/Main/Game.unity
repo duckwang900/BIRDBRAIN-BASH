@@ -5399,6 +5399,7 @@ GameObject:
   - component: {fileID: 1347761768}
   - component: {fileID: 1347761770}
   - component: {fileID: 1347761771}
+  - component: {fileID: 1347761772}
   m_Layer: 0
   m_Name: MultiplayerManager
   m_TagString: Untagged
@@ -5519,6 +5520,110 @@ MonoBehaviour:
   pelicanKBM: {fileID: 1973676567}
   pelicanC: {fileID: 1881448903}
   pelicanAI: {fileID: 25575515}
+--- !u!114 &1347761772
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1347761767}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: cd4304e2078f17f4caf9790621e17b24, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  player1Card:
+    cardRoot: {fileID: 0}
+    playerNameText: {fileID: 0}
+    playerIcon: {fileID: 0}
+    offensiveAbility:
+      baseIcon: {fileID: 0}
+      cooldownOverlay: {fileID: 0}
+      cooldownText: {fileID: 0}
+    defensiveAbility:
+      baseIcon: {fileID: 0}
+      cooldownOverlay: {fileID: 0}
+      cooldownText: {fileID: 0}
+  player2Card:
+    cardRoot: {fileID: 0}
+    playerNameText: {fileID: 0}
+    playerIcon: {fileID: 0}
+    offensiveAbility:
+      baseIcon: {fileID: 0}
+      cooldownOverlay: {fileID: 0}
+      cooldownText: {fileID: 0}
+    defensiveAbility:
+      baseIcon: {fileID: 0}
+      cooldownOverlay: {fileID: 0}
+      cooldownText: {fileID: 0}
+  player3Card:
+    cardRoot: {fileID: 0}
+    playerNameText: {fileID: 0}
+    playerIcon: {fileID: 0}
+    offensiveAbility:
+      baseIcon: {fileID: 0}
+      cooldownOverlay: {fileID: 0}
+      cooldownText: {fileID: 0}
+    defensiveAbility:
+      baseIcon: {fileID: 0}
+      cooldownOverlay: {fileID: 0}
+      cooldownText: {fileID: 0}
+  player4Card:
+    cardRoot: {fileID: 0}
+    playerNameText: {fileID: 0}
+    playerIcon: {fileID: 0}
+    offensiveAbility:
+      baseIcon: {fileID: 0}
+      cooldownOverlay: {fileID: 0}
+      cooldownText: {fileID: 0}
+    defensiveAbility:
+      baseIcon: {fileID: 0}
+      cooldownOverlay: {fileID: 0}
+      cooldownText: {fileID: 0}
+  penguinDisplayName: Penguin
+  penguinPlayerIcon: {fileID: 0}
+  penguinOffensiveIcon: {fileID: 0}
+  penguinDefensiveIcon: {fileID: 0}
+  crowDisplayName: Crow
+  crowPlayerIcon: {fileID: 0}
+  crowOffensiveIcon: {fileID: 0}
+  crowDefensiveIcon: {fileID: 0}
+  scissortailDisplayName: Scissortail
+  scissortailPlayerIcon: {fileID: 0}
+  scissortailOffensiveIcon: {fileID: 0}
+  scissortailDefensiveIcon: {fileID: 0}
+  lovebirdDisplayName: Lovebird
+  lovebirdPlayerIcon: {fileID: 0}
+  lovebirdOffensiveIcon: {fileID: 0}
+  lovebirdDefensiveIcon: {fileID: 0}
+  dodoDisplayName: Dodo
+  dodoPlayerIcon: {fileID: 0}
+  dodoOffensiveIcon: {fileID: 0}
+  dodoDefensiveIcon: {fileID: 0}
+  pelicanDisplayName: Pelican
+  pelicanPlayerIcon: {fileID: 0}
+  pelicanOffensiveIcon: {fileID: 0}
+  pelicanDefensiveIcon: {fileID: 0}
+  seagullDisplayName: Seagull
+  seagullPlayerIcon: {fileID: 0}
+  seagullOffensiveIcon: {fileID: 0}
+  seagullDefensiveIcon: {fileID: 0}
+  owlDisplayName: Owl
+  owlPlayerIcon: {fileID: 0}
+  owlOffensiveIcon: {fileID: 0}
+  owlDefensiveIcon: {fileID: 0}
+  pukekoDisplayName: Pukeko
+  pukekoPlayerIcon: {fileID: 0}
+  pukekoOffensiveIcon: {fileID: 0}
+  pukekoDefensiveIcon: {fileID: 0}
+  toucanDisplayName: Toucan
+  toucanPlayerIcon: {fileID: 0}
+  toucanOffensiveIcon: {fileID: 0}
+  toucanDefensiveIcon: {fileID: 0}
+  kiwiDisplayName: Kiwi
+  kiwiPlayerIcon: {fileID: 0}
+  kiwiOffensiveIcon: {fileID: 0}
+  kiwiDefensiveIcon: {fileID: 0}
 --- !u!1 &1354460402
 GameObject:
   m_ObjectHideFlags: 0
