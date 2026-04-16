@@ -29,12 +29,13 @@ public class MultiplayerManager : MonoBehaviour
         else
         {
             instance = this;
-            DontDestroyOnLoad(gameObject);
+            // DontDestroyOnLoad(gameObject);
         }
 
         cManager = GetComponent<CharacterManager>();
         instance.isKBMInput = DataTransferManager.isKBMInput;
         instance.selectedBirds = DataTransferManager.selectedBirds;
+        InitializePlayers();
     }
 
     void InitializePlayers()
@@ -67,6 +68,7 @@ public class MultiplayerManager : MonoBehaviour
             // Give the player the necessary scripts to move and interact with the ball
             MakePlayer(player.gameObject, playerCount);
             player.actions.FindActionMap("Player").Enable();
+            player.actions.FindActionMap("UI").Enable();
 
             // Increment player count
             playerCount++;
@@ -183,6 +185,7 @@ public class MultiplayerManager : MonoBehaviour
         // Set side of court for player
         BallInteract ballInteract = player.GetComponent<BallInteract>();
         ballInteract.onLeft = playerCount < 2 ? true : false;
+        ballInteract.playerID = playerCount;
         
         // Assign the transform of the player
         player.transform.position = playerSpawnpoints[playerCount].position;
@@ -263,23 +266,5 @@ public class MultiplayerManager : MonoBehaviour
             fo = GameObject.Find("PlayerOneFollow").GetComponent<FollowObject>();
         }
         fo.target = ai.transform;
-    }
-
-    void OnSceneLoaded(Scene scene, LoadSceneMode mode)
-    {
-        if (scene.name == mainScene)
-        {
-            InitializePlayers();
-        }
-    }
-
-    void OnEnable()
-    {
-        SceneManager.sceneLoaded += OnSceneLoaded;
-    }
-
-    void OsDisable()
-    {
-        SceneManager.sceneLoaded -= OnSceneLoaded;
     }
 }

@@ -1,6 +1,9 @@
 using System;
+using Unity.VisualScripting;
 using UnityEngine;
+using UnityEngine.EventSystems;
 using UnityEngine.InputSystem;
+using UnityEngine.InputSystem.UI;
 
 public class BallInteract : MonoBehaviour
 {
@@ -18,6 +21,7 @@ public class BallInteract : MonoBehaviour
     
     [Header("Bird Selection")]
     [SerializeField] private BirdType birdType = BirdType.SEAGULL; // Type of the bird for audio noises; default to penguin
+    public int playerID;
 
     // Change the birdType from other managers
     public void SetBirdType(BirdType type) { birdType = type; }
@@ -190,6 +194,19 @@ public class BallInteract : MonoBehaviour
                     }
                     break;
             }
+        }
+
+        // Check if the player is trying to pause or resume the game
+        if (!PauseMenu.Instance.GameIsPaused && playerInput.actions.FindAction("Pause").WasPressedThisFrame())
+        {
+            PauseMenu.Instance.pausedPlayerID = playerID;
+            PauseMenu.Instance.inputModule.actionsAsset = playerInput.actions;
+            PauseMenu.Instance.Pause();
+        }
+        else if (PauseMenu.Instance.GameIsPaused && PauseMenu.Instance.pausedPlayerID == playerID
+            && playerInput.actions.FindAction("Pause").WasPressedThisFrame())
+        {
+            PauseMenu.Instance.Resume();
         }
     }
 
