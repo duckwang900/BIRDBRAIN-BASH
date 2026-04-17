@@ -248,6 +248,9 @@ public class BallInteract : MonoBehaviour
         AudioManager.PlayBirdSound(birdType, SoundType.BUMP, 1.0f);
         AudioManager.PlayBallPlayerInteractionSound();
 
+        // handle vfx
+        HitEffects.Instance.PlayEffect(HitEffects.HitType.BumpSetServe, onLeft);
+
         // Update game manager fields
         GameManager.Instance.gameState = GameManager.GameState.Bumped;
         GameManager.Instance.lastHit = gameObject;
@@ -297,6 +300,9 @@ public class BallInteract : MonoBehaviour
         AudioManager.PlayBirdSound(birdType, SoundType.SET, 1.0f);
         AudioManager.PlayBallPlayerInteractionSound();
 
+        // handle vfx
+        HitEffects.Instance.PlayEffect(HitEffects.HitType.BumpSetServe, onLeft);
+
         // Update game manager fields
         GameManager.Instance.gameState = GameManager.GameState.Set;
         GameManager.Instance.lastHit = gameObject;
@@ -343,6 +349,9 @@ public class BallInteract : MonoBehaviour
         AudioManager.PlayBirdSound(birdType, SoundType.SPIKE, 1.0f);
         AudioManager.PlayBallPlayerInteractionSound();
 
+        // handle vfx
+        HitEffects.Instance.PlayEffect(HitEffects.HitType.Spike, onLeft);
+
         // Update game manager fields
         GameManager.Instance.gameState = GameManager.GameState.Spiked;
         GameManager.Instance.lastHit = gameObject;
@@ -384,6 +393,9 @@ public class BallInteract : MonoBehaviour
 
         // Play serve sound
         AudioManager.PlayBallPlayerInteractionSound();
+
+        // handle vfx
+        HitEffects.Instance.PlayEffect(HitEffects.HitType.BumpSetServe, onLeft);
         
 
         // Update game manager fields
@@ -403,6 +415,10 @@ public class BallInteract : MonoBehaviour
     {
         AudioManager.PlayBirdSound(birdType, SoundType.BLOCK, 1.0f);
         AudioManager.PlayBallPlayerInteractionSound();
+
+        // handle vfx
+        HitEffects.Instance.PlayEffect(HitEffects.HitType.Block, onLeft);
+        
         // If the incoming spike is marked unblockable, only allow block
         // when the spike was NOT from the unblockable owner.
         if (BallManager.Instance.unblockableOwner != null)
