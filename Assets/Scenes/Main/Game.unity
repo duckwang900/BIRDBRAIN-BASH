@@ -722,11 +722,11 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   team1BumpSetServePrefab: {fileID: 3499421978768982111, guid: b32d39234253c6141baf6f31711edded, type: 3}
-  team1SpikePrefab: {fileID: 3499421978768982111, guid: b32d39234253c6141baf6f31711edded, type: 3}
-  team1BlockPrefab: {fileID: 3499421978768982111, guid: b32d39234253c6141baf6f31711edded, type: 3}
+  team1SpikePrefab: {fileID: 3499421978768982111, guid: 55c8d5c3c0db7b3458de87acd236b137, type: 3}
+  team1BlockPrefab: {fileID: 3499421978768982111, guid: a7da621a0961fb54183bc33ae355404b, type: 3}
   team2BumpSetServePrefab: {fileID: 3499421978768982111, guid: c78a7c518c9b159409b6f458363ecd7f, type: 3}
-  team2SpikePrefab: {fileID: 3499421978768982111, guid: c78a7c518c9b159409b6f458363ecd7f, type: 3}
-  team2BlockPrefab: {fileID: 3499421978768982111, guid: c78a7c518c9b159409b6f458363ecd7f, type: 3}
+  team2SpikePrefab: {fileID: 3499421978768982111, guid: c59883dd250572946afd7e1622f167c0, type: 3}
+  team2BlockPrefab: {fileID: 3499421978768982111, guid: 65dd961a133d06544a01fbb63fce7f8e, type: 3}
 --- !u!4 &140362001
 Transform:
   m_ObjectHideFlags: 0
