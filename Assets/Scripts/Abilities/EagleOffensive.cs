@@ -16,6 +16,7 @@ public class EagleOffensive : BirdAbility
     private void Awake()
     {
         input = GetComponent<PlayerInput>();
+        _onLeft = GetComponent<BallInteract>().onLeft;
     }
 
     private void Update()
@@ -54,10 +55,19 @@ public class EagleOffensive : BirdAbility
         {
             if (opponent == null) continue;
 
-            BirdAbility ability = opponent.GetComponent<BirdAbility>();
-            if (ability != null)
+            BirdAbility[] abilities = opponent.GetComponents<BirdAbility>();
+            if (abilities.Length > 0)
             {
-                ability.abilitiesDisabled(true);
+                foreach (BirdAbility ability in abilities)
+                {
+                    ability.DisableAbilities(true);
+                }
+                opponent.GetComponent<CharacterMovement>().controlMovement(false, false);
+
+            }
+            else
+            {
+                opponent.GetComponent<AIBehavior>().enabled = false;
             }
         }
 
@@ -68,10 +78,19 @@ public class EagleOffensive : BirdAbility
         {
             if (opponent == null) continue;
 
-            BirdAbility ability = opponent.GetComponent<BirdAbility>();
-            if (ability != null)
+            BirdAbility[] abilities = opponent.GetComponents<BirdAbility>();
+            if (abilities.Length > 0)
             {
-                ability.abilitiesDisabled(false);
+                foreach (BirdAbility ability in abilities)
+                {
+                    ability.DisableAbilities(false);
+                }
+                opponent.GetComponent<CharacterMovement>().controlMovement(true, true);
+
+            }
+            else
+            {
+                opponent.GetComponent<AIBehavior>().enabled = true;
             }
         }
     }
