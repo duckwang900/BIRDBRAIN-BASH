@@ -154,6 +154,18 @@ public class HUDManager : MonoBehaviour
     [SerializeField] private Texture kiwiOffensiveIcon;
     [SerializeField] private Texture kiwiDefensiveIcon;
 
+    [Header("Chicken")]
+    [SerializeField] private string chickenDisplayName = "Chicken";
+    [SerializeField] private Texture chickenPlayerIcon;
+    [SerializeField] private Texture chickenOffensiveIcon;
+    [SerializeField] private Texture chickenDefensiveIcon;
+
+    [Header("Ostrich")]
+    [SerializeField] private string ostrichDisplayName = "Ostrich";
+    [SerializeField] private Texture ostrichPlayerIcon;
+    [SerializeField] private Texture ostrichOffensiveIcon;
+    [SerializeField] private Texture ostrichDefensiveIcon;
+
 
     private static HUDManager instance;
     public static HUDManager Instance => instance;
@@ -319,6 +331,8 @@ public class HUDManager : MonoBehaviour
             BirdType.PUKEKO      => new BirdHUDData { displayName = pukekoDisplayName,      playerIcon = pukekoPlayerIcon,      offensiveIcon = pukekoOffensiveIcon,      defensiveIcon = pukekoDefensiveIcon },
             BirdType.TOUCAN      => new BirdHUDData { displayName = toucanDisplayName,      playerIcon = toucanPlayerIcon,      offensiveIcon = toucanOffensiveIcon,      defensiveIcon = toucanDefensiveIcon },
             BirdType.KIWI        => new BirdHUDData { displayName = kiwiDisplayName,        playerIcon = kiwiPlayerIcon,        offensiveIcon = kiwiOffensiveIcon,        defensiveIcon = kiwiDefensiveIcon },
+            BirdType.CHICKEN        => new BirdHUDData { displayName = chickenDisplayName,        playerIcon = chickenPlayerIcon,        offensiveIcon = chickenOffensiveIcon,        defensiveIcon = chickenDefensiveIcon },
+            BirdType.OSTRICH        => new BirdHUDData { displayName = ostrichDisplayName,        playerIcon = ostrichPlayerIcon,        offensiveIcon = ostrichOffensiveIcon,        defensiveIcon = ostrichDefensiveIcon },
             _                    => null
         };
     }
