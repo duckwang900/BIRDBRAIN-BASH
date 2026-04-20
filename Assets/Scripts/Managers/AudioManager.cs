@@ -46,6 +46,8 @@ public class AudioManager : MonoBehaviour
     [SerializeField] private AudioClip[] pelicanSounds;
     [SerializeField] private AudioClip[] toucanSounds;
     [SerializeField] private AudioClip[] pukekoSounds;
+    [SerializeField] private AudioClip[] chickenSounds;
+    [SerializeField] private AudioClip[] ostrichSounds;
 
     [Header("Scoring Sounds")]
     [SerializeField] private AudioClip[] scoringSounds;
@@ -122,6 +124,12 @@ public class AudioManager : MonoBehaviour
                 break;
             case BirdType.PUKEKO:
                 birdSounds = instance.pukekoSounds;
+                break;
+            case BirdType.CHICKEN:
+                birdSounds = instance.chickenSounds;
+                break;
+            case BirdType.OSTRICH:
+                birdSounds = instance.ostrichSounds;
                 break;
             default:
                 birdSounds = instance.penguinSounds;

@@ -286,5 +286,8 @@ public class MultiplayerManager : MonoBehaviour
             fo = GameObject.Find("PlayerOneFollow").GetComponent<FollowObject>();
         }
         fo.target = ai.transform;
+
+        // Register this AI's bird with the HUD so its player card shows up
+        HUDManager.Instance?.RegisterAICard(playerCount, birdType);
     }
 }
