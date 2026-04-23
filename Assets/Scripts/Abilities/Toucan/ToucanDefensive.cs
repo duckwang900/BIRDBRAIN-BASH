@@ -80,7 +80,14 @@ public class ToucanDefensive : BirdAbility
         HUDManager.Instance.TriggerDefensiveCooldown(playerID, cooldown);
 
         // Play defensive sound
-        AudioManager.PlayBirdSound(BirdType.TOUCAN, SoundType.DEFENSIVE, 1.0f);
+        AudioManager.PlayBirdSound(BirdType.TOUCAN, SoundType.HAPPY, 1.0f);
+
+        // Trigger defensive ability animation if animator exists
+        var myBallInteract = GetComponent<BallInteract>();
+        if (myBallInteract != null && myBallInteract.animator != null)
+        {
+            myBallInteract.animator.SetTrigger("DefensiveAbility");
+        }
         
         StartCoroutine(Cooldown());
     }

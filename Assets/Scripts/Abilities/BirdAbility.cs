@@ -1,6 +1,7 @@
 using UnityEngine;
 using System.Collections;
 using System.Collections.Generic;
+using UnityEngine.InputSystem;
 
 public class BirdAbility : MonoBehaviour {
     private bool abilitiesDisabled = false;
@@ -9,9 +10,21 @@ public class BirdAbility : MonoBehaviour {
     protected bool _onLeft; // ducky: for opponents if needed
     private bool isStunned = false;
 
+    void Start()
+    {
+        _onLeft = GetComponent<PlayerInput>().playerIndex < 2;
+    }
     public void DisableAbilities(bool disabledOrNot)
     {
         abilitiesDisabled = disabledOrNot;
+
+        // VFX manager
+        BuffsDebuffs.Instance.ApplyEffect(
+        BuffsDebuffs.EffectType.Silence,
+        gameObject,
+        3f,
+        _onLeft
+        );
     }
 
     public bool CanUseAbilities()
