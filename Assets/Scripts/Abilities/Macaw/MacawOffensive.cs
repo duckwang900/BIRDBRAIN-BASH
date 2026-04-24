@@ -30,6 +30,11 @@ public class MacawOffensive : BirdAbility
             opponentControls.Add(GameManager.Instance.leftPlayer1.GetComponent<PlayerInput>());
             opponentControls.Add(GameManager.Instance.leftPlayer2.GetComponent<PlayerInput>());
         }
+
+        //foreach (var player in opponentControls)
+        //{
+        //    Debug.Log(player.actions.GetInstanceID());
+        //}
     }
 
     public void OnOffensiveAbility()
